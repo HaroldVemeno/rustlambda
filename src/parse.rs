@@ -3,34 +3,12 @@ use std::iter::Peekable;
 use std::vec;
 
 use crate::lex::*;
-
-#[derive(Clone, Debug)]
-pub enum Expr {
-    Variable(u8),
-    Name(String),
-    Abstr(u8, Box<Expr>),
-    Appl(Box<Expr>, Box<Expr>),
-}
+use crate::types::*;
 
 enum Atom {
     E(Box<Expr>),
     AbstrParam(u8),
 }
-
-/*
-impl PartialEq for AST {
-    fn eq(&self, other: &Self) -> bool {
-        use AST::*;
-        match (self, other) {
-            (Variable(a), Variable(b)) => a == b,
-            (Name(a), Name(b)) => a == b,
-            (Abstr(a, _), Abstr(_, _)) => todo!(),
-            (Appl(_, _), Appl(_, _)) => todo!(),
-            _ => false
-        }
-    }
-}
-*/
 
 #[derive(Clone)]
 pub struct ParseError {

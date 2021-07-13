@@ -3,6 +3,8 @@ use std::{env, error::Error, fs::File, io};
 mod lex;
 mod parse;
 mod print;
+mod types;
+mod eval;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let vec: Vec<_> = env::args().collect();
@@ -13,7 +15,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         eprintln!("{:?}", lres);
         eprintln!("Parsing:\n");
         let pres = parse::parse(lres)?;
-        eprintln!("{:#}\n", pres);
+        eprintln!("{:#}\n", pres); 
         eprintln!("{:?}\n", pres);
         eprintln!("{}\n", pres);
     } else if vec.len() > 1 {

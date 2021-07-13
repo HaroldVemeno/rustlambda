@@ -2,6 +2,7 @@ use std::{ascii, error, fmt};
 
 use crate::lex;
 use crate::parse;
+use crate::types::Expr;
 
 impl error::Error for lex::LexError {}
 
@@ -55,9 +56,9 @@ impl fmt::Display for lex::TokenPos {
     }
 }
 
-impl fmt::Display for parse::Expr {
+impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use parse::Expr::{self, *};
+        use Expr::*;
         if !f.alternate() {
             match self {
                 Variable(v) => write!(f, "{}", ascii::escape_default(*v)),
