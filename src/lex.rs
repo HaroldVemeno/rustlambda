@@ -27,7 +27,7 @@ pub struct LexError {
     pub col: u32,
 }
 
-pub fn lex<T: Read>(f: T) -> Result<Vec<TokenPos>, Box<dyn Error>> {
+pub fn lex(input: impl Read) -> Result<Vec<TokenPos>, Box<dyn Error>> {
     let mut vec = Vec::new();
 
     let mut col: u32 = 1;
@@ -39,7 +39,7 @@ pub fn lex<T: Read>(f: T) -> Result<Vec<TokenPos>, Box<dyn Error>> {
         }
     }
 
-    let mut p = BufReader::new(f).bytes().peekable();
+    let mut p = BufReader::new(input).bytes().peekable();
     while let Some(Ok(_)) = p.peek() {
         use Token::*;
         let c = p.next().unwrap().unwrap();
