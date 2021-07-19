@@ -1,3 +1,5 @@
+#![feature(box_patterns)]
+
 use std::io;
 use std::fs::File;
 use std::error::Error;
@@ -9,29 +11,34 @@ mod parse;
 mod print;
 mod types;
 
+
 fn main() -> Result<(), Box<dyn Error>> {
     let vec: Vec<_> = env::args().collect();
-    if vec.len() == 1 {
+    let lexed = if vec.len() == 1 {
         let input = io::stdin();
         eprintln!("Lexing:\n");
-        let lres = lex::lex(input)?;
-        eprintln!("{:?}", lres);
-        eprintln!("Parsing:\n");
-        let pres = parse::parse(lres)?;
-        eprintln!("{:#}\n", pres);
-        eprintln!("{:?}\n", pres);
-        eprintln!("{}\n", pres);
+        lex::lex(input)?
+
     } else if vec.len() > 1 {
-        let file = File::open(&vec[1])?;
+        let input = File::open(&vec[1])?;
         eprintln!("Lexing:\n");
-        let lres = lex::lex(file)?;
-        eprintln!("{:?}", lres);
-        eprintln!("Parsing:\n");
-        let pres = parse::parse(lres)?;
-        eprintln!("{:#}\n", pres);
-        eprintln!("{:?}\n", pres);
-        eprintln!("{}\n", pres);
-    }
+        lex::lex(input)?
+    } else {unreachable!()};
+
+
+    eprintln!("{:?}", lexed);
+
+    eprintln!("Parsing:\n");
+    let parsed = parse::parse(lexed)?;
+    eprintln!("{:#}\n", parsed);
+    eprintln!("{:?}\n", parsed);
+    eprintln!("{}\n", parsed);
+
+    eprintln!("Evaluating:\n");
+    let evaluated = eval::reduce_nolog(parsed)?;
+    eprintln!("{:#}\n", evaluated);
+    eprintln!("{:?}\n", evaluated);
+    eprintln!("{}\n", evaluated);
 
     Ok(())
 }
