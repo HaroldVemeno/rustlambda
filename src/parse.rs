@@ -1,9 +1,11 @@
+use std::error;
 use std::error::Error;
+use std::fmt;
 use std::iter::Peekable;
 use std::vec;
 
 use crate::lex::*;
-use crate::types::*;
+use crate::expr::Expr;
 
 enum Atom {
     E(Box<Expr>),
@@ -17,28 +19,6 @@ pub struct ParseError {
     pub col: u32,
 }
 
-impl ParseError {
-    fn boxed(msg: impl Into<String>, row: u32, col: u32) -> Box<Self> {
-        Box::new(ParseError {
-            msg: msg.into(),
-            row,
-            col,
-        })
-    }
-}
-
-impl<A> From<ParseError> for Result<A, Box<dyn Error>> {
-    fn from(val: ParseError) -> Self {
-        Err(Box::new(val))
-    }
-}
-
-impl<A> From<ParseError> for Result<A, ParseError> {
-    fn from(val: ParseError) -> Self {
-        Err(val)
-    }
-}
-
 #[derive(Copy, Clone, Debug)]
 enum ParserState {
     InExpr,
@@ -47,10 +27,10 @@ enum ParserState {
 }
 
 pub fn parse(tokps: Vec<TokenPos>) -> Result<Box<Expr>, Box<dyn Error>> {
-    parse_iter(&mut tokps.into_iter().peekable())
+    parse_pkbl(&mut tokps.into_iter().peekable())
 }
 
-fn parse_iter(pkbl: &mut Peekable<vec::IntoIter<TokenPos>>) -> Result<Box<Expr>, Box<dyn Error>> {
+fn parse_pkbl(pkbl: &mut Peekable<vec::IntoIter<TokenPos>>) -> Result<Box<Expr>, Box<dyn Error>> {
     use Atom::*;
     use Expr::*;
     use ParserState::*;
@@ -89,7 +69,7 @@ fn parse_iter(pkbl: &mut Peekable<vec::IntoIter<TokenPos>>) -> Result<Box<Expr>,
                 }
             }
             (InExpr, OpParen) => {
-                let scope = parse_iter(pkbl)?;
+                let scope = parse_pkbl(pkbl)?;
                 if matches!(stack.last(), Some(E(_))) {
                     if let Some(E(before)) = stack.pop() {
                         stack.push(E(Box::new(Appl(before, scope))))
@@ -128,7 +108,7 @@ fn parse_iter(pkbl: &mut Peekable<vec::IntoIter<TokenPos>>) -> Result<Box<Expr>,
                 stack.push(AbstrParam(v));
             }
             (AbstrParams, Dot) => {
-                let mut tilparend = parse_iter(pkbl)?;
+                let mut tilparend = parse_pkbl(pkbl)?;
                 while matches!(stack.last(), Some(AbstrParam(_))) {
                     if let Some(AbstrParam(c)) = stack.pop() {
                         tilparend = Box::new(Abstr(c, tilparend));
@@ -161,9 +141,13 @@ fn parse_iter(pkbl: &mut Peekable<vec::IntoIter<TokenPos>>) -> Result<Box<Expr>,
                     ));
                 }
             }
-            (s, t) => return Err(ParseError::boxed(
-                format!("unexpected token: {:?} while in state {:?}",
-                t, s, ), row, col)),
+            (s, t) => {
+                return Err(ParseError::boxed(
+                    format!("unexpected token: {:?} while in state {:?}", t, s,),
+                    row,
+                    col,
+                ))
+            }
         }
     }
     if let InExpr = state {
@@ -190,5 +174,43 @@ fn parse_iter(pkbl: &mut Peekable<vec::IntoIter<TokenPos>>) -> Result<Box<Expr>,
             grow,
             gcol,
         ))
+    }
+}
+
+impl ParseError {
+    fn boxed(msg: impl Into<String>, row: u32, col: u32) -> Box<Self> {
+        Box::new(ParseError {
+            msg: msg.into(),
+            row,
+            col,
+        })
+    }
+}
+
+impl error::Error for ParseError {}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let ParseError { row, col, msg } = self;
+        write!(f, "ParseError({}:{}): {}", row, col, msg)
+    }
+}
+
+impl fmt::Debug for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let ParseError { row, col, msg } = self;
+        write!(f, "ParseError({}:{}): {}", row, col, msg)
+    }
+}
+
+impl<A> From<ParseError> for Result<A, Box<dyn Error>> {
+    fn from(val: ParseError) -> Self {
+        Err(Box::new(val))
+    }
+}
+
+impl<A> From<ParseError> for Result<A, ParseError> {
+    fn from(val: ParseError) -> Self {
+        Err(val)
     }
 }

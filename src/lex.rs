@@ -1,5 +1,7 @@
 use std::ascii;
+use std::error;
 use std::error::Error;
+use std::fmt;
 use std::io::BufReader;
 use std::io::Read;
 
@@ -12,6 +14,7 @@ pub enum Token {
     OpParen,
     ClParen,
 }
+use Token::*;
 
 #[derive(Clone, Debug)]
 pub struct TokenPos {
@@ -22,9 +25,9 @@ pub struct TokenPos {
 
 #[derive(Clone)]
 pub struct LexError {
-    pub msg: String,
-    pub row: u32,
-    pub col: u32,
+    msg: String,
+    row: u32,
+    col: u32,
 }
 
 pub fn lex(input: impl Read) -> Result<Vec<TokenPos>, Box<dyn Error>> {
@@ -92,8 +95,8 @@ pub fn lex(input: impl Read) -> Result<Vec<TokenPos>, Box<dyn Error>> {
                 }
                 vec.push(TokenPos {
                     tok: Capitalized(s),
-                    col: scol,
                     row: srow,
+                    col: scol,
                 });
             }
             _ => return err!("Bad char '{}'", ascii::escape_default(c)),
@@ -105,4 +108,39 @@ pub fn lex(input: impl Read) -> Result<Vec<TokenPos>, Box<dyn Error>> {
     }
 
     Ok(vec)
+}
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Char(c) => f.write_str(&ascii::escape_default(*c).to_string()),
+            Capitalized(s) => f.write_str(s),
+            Backslash => write!(f, "\\"),
+            OpParen => write!(f, "("),
+            ClParen => write!(f, ")"),
+            Dot => write!(f, "."),
+        }
+    }
+}
+
+impl fmt::Display for TokenPos {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.tok.fmt(f)
+    }
+}
+
+impl error::Error for LexError {}
+
+impl fmt::Display for LexError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let LexError { row, col, msg } = self;
+        write!(f, "LexError({}:{}): {}", row, col, msg)
+    }
+}
+
+impl fmt::Debug for LexError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let LexError { row, col, msg } = self;
+        write!(f, "LexError({}:{}): {}", row, col, msg)
+    }
 }
