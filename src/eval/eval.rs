@@ -1,14 +1,10 @@
-use core::panic;
+use std::panic;
 use empty_box::EmptyBox;
 use std::collections::HashSet;
-use std::{error, fmt};
+use std::error;
 
-use crate::expr::Expr;
-
-#[derive(Clone)]
-pub struct EvalError {
-    msg: String,
-}
+use super::EvalError;
+use crate::expr::{Expr, size, unbounds_in};
 
 pub fn reduce_nolog(mut expr: Box<Expr>) -> Result<Box<Expr>, Box<dyn error::Error>> {
     let max_iterations = 1000;
@@ -171,25 +167,3 @@ fn replace_var(expr: Box<Expr>, from: u8, to: u8) -> Box<Expr> {
         }
     })
 }
-
-
-
-impl EvalError {
-    fn boxed(msg: impl Into<String>) -> Box<EvalError> {
-        Box::new(EvalError { msg: msg.into() })
-    }
-}
-
-impl fmt::Display for EvalError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "EvalError: {}", self.msg)
-    }
-}
-
-impl fmt::Debug for EvalError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "EvalError: {}", self.msg)
-    }
-}
-
-impl error::Error for EvalError {}

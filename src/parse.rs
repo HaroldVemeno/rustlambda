@@ -4,8 +4,8 @@ use std::fmt;
 use std::iter::Peekable;
 use std::vec;
 
-use crate::lex::*;
 use crate::expr::Expr;
+use crate::lex::*;
 
 enum Atom {
     E(Box<Expr>),

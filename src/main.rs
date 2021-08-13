@@ -1,14 +1,9 @@
-#![feature(box_patterns)]
+use rustlambda::{eval, lex, parse};
 
 use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::io;
-
-mod eval;
-mod lex;
-mod parse;
-mod expr;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let vec: Vec<_> = env::args().collect();
