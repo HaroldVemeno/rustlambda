@@ -1,4 +1,8 @@
-use std::{ascii, collections::{HashMap, HashSet}, fmt};
+use std::{
+    ascii,
+    collections::{HashMap, HashSet},
+    fmt,
+};
 
 #[derive(Clone, Debug)]
 pub enum Expr {
@@ -20,11 +24,9 @@ pub fn alpha_eq(a: &Expr, b: &Expr) -> bool {
                 map.insert(*w, *v);
                 alpha_eq_mapped(b, c, map)
             }
-        },
-        (Expr::Appl(f, x), Expr::Appl(g, y)) => {
-            alpha_eq(f, g) && alpha_eq(x, y)
-        },
-        _ => false
+        }
+        (Expr::Appl(f, x), Expr::Appl(g, y)) => alpha_eq(f, g) && alpha_eq(x, y),
+        _ => false,
     }
 }
 
@@ -40,11 +42,11 @@ pub fn alpha_eq_mapped(a: &Expr, b: &Expr, mut b_to_a: HashMap<u8, u8>) -> bool 
                 b_to_a.insert(*w, *v);
                 alpha_eq_mapped(b, c, b_to_a)
             }
-        },
+        }
         (Expr::Appl(f, x), Expr::Appl(g, y)) => {
             alpha_eq_mapped(f, g, b_to_a.clone()) && alpha_eq_mapped(x, y, b_to_a)
-        },
-        _ => false
+        }
+        _ => false,
     }
 }
 
@@ -89,6 +91,75 @@ pub fn unbounds_in(expr: &Expr) -> HashSet<u8> {
             }
             set
         }
+    }
+}
+
+pub fn to_church_num(mut n: u32) -> Box<Expr> {
+    use Expr::*;
+    let mut ret = Box::new(Variable(b'x'));
+    while n > 0 {
+        ret = Box::new(Appl(Box::new(Variable(b'f')), ret));
+        n -= 1;
+    }
+    ret = Box::new(Abstr(b'f', Box::new(Abstr(b'x', ret))));
+    ret
+}
+
+pub fn from_church_num(e: &Expr) -> Option<u32> {
+    use Expr::*;
+    match e {
+        Abstr(f, box Abstr(x, box body)) => {
+            let mut ret: u32 = 0;
+            let mut b: &Expr = body;
+            loop {
+                b = match b {
+                    Variable(v) if v == x => break Some(ret),
+                    Appl(box Variable(g), box y) if g == f => {
+                        ret += 1;
+                        y
+                    }
+                    _ => break None,
+                }
+            }
+        }
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use Expr::*;
+
+    #[test]
+    fn church_nums0() {
+        let zero = to_church_num(0);
+        assert!(alpha_eq(
+            zero.as_ref(),
+            &Abstr(b'd', Box::new(Abstr(b'r', Box::new(Variable(b'r')))))
+        ));
+        assert_eq!(from_church_num(zero.as_ref()), Some(0));
+    }
+
+    #[test]
+    fn church_nums1() {
+        let one = to_church_num(1);
+        assert!(alpha_eq(
+            one.as_ref(),
+            &Abstr(
+                b'd',
+                Box::new(Abstr(
+                    b'r',
+                    Box::new(Appl(Box::new(Variable(b'd')), Box::new(Variable(b'r'))))
+                ))
+            )
+        ));
+        assert_eq!(from_church_num(one.as_ref()), Some(1));
+    }
+
+    #[test]
+    fn church_nums7() {
+        assert_eq!(from_church_num(to_church_num(7).as_ref()), Some(7));
     }
 }
 
