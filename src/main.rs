@@ -6,20 +6,14 @@ use std::fs::File;
 use std::io;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let vec: Vec<_> = env::args().collect();
-    let lexed = match vec.len() {
-        1 => {
-            let input = io::stdin();
-            eprintln!("Lexing:\n");
-            lex::lex(input)?
-        }
-        _ => {
-            let input = File::open(&vec[1])?;
-            eprintln!("Lexing:\n");
-            lex::lex(input)?
-        }
-    };
+    let mut args = env::args();
+    args.next();
     //eprintln!("{:?}", lexed);
+    eprintln!("Lexing:\n");
+    let lexed = match args.next() {
+        None => lex::lex(io::stdin()),
+        Some(s) => lex::lex(File::open(&s)?),
+    }?;
 
     eprintln!("Parsing\n");
     let parsed = parse::parse(lexed)?;
