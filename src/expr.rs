@@ -1,4 +1,4 @@
-use std::{ascii, fmt};
+use std::{ascii, collections::{HashMap, HashSet}, fmt};
 
 #[derive(Clone, Debug)]
 pub enum Expr {
@@ -6,6 +6,90 @@ pub enum Expr {
     Name(String),
     Abstr(u8, Box<Expr>),
     Appl(Box<Expr>, Box<Expr>),
+}
+
+pub fn alpha_eq(a: &Expr, b: &Expr) -> bool {
+    match (a, b) {
+        (Expr::Variable(v), Expr::Variable(w)) => v == w,
+        (Expr::Name(n), Expr::Name(m)) => n == m,
+        (Expr::Abstr(v, box b), Expr::Abstr(w, box c)) => {
+            if v == w {
+                alpha_eq(b, c)
+            } else {
+                let mut map = HashMap::new();
+                map.insert(*w, *v);
+                alpha_eq_mapped(b, c, map)
+            }
+        },
+        (Expr::Appl(f, x), Expr::Appl(g, y)) => {
+            alpha_eq(f, g) && alpha_eq(x, y)
+        },
+        _ => false
+    }
+}
+
+pub fn alpha_eq_mapped(a: &Expr, b: &Expr, mut b_to_a: HashMap<u8, u8>) -> bool {
+    let conv = |c| b_to_a.get(c).unwrap_or(c);
+    match (a, b) {
+        (Expr::Variable(v), Expr::Variable(w)) => v == conv(w),
+        (Expr::Name(n), Expr::Name(m)) => n == m,
+        (Expr::Abstr(v, box b), Expr::Abstr(w, box c)) => {
+            if v == w {
+                alpha_eq_mapped(b, c, b_to_a)
+            } else {
+                b_to_a.insert(*w, *v);
+                alpha_eq_mapped(b, c, b_to_a)
+            }
+        },
+        (Expr::Appl(f, x), Expr::Appl(g, y)) => {
+            alpha_eq_mapped(f, g, b_to_a.clone()) && alpha_eq_mapped(x, y, b_to_a)
+        },
+        _ => false
+    }
+}
+
+pub fn size(expr: &Expr) -> u32 {
+    let mut ret = 0;
+    let mut stack = Vec::new();
+    let mut next = expr;
+    loop {
+        ret += 1;
+        next = match next {
+            Expr::Variable(_) | Expr::Name(_) => match stack.pop() {
+                Some(e) => e,
+                None => break,
+            },
+            Expr::Abstr(_, body) => body,
+            Expr::Appl(a, b) => {
+                stack.push(a);
+                b
+            }
+        }
+    }
+    ret
+}
+
+pub fn unbounds_in(expr: &Expr) -> HashSet<u8> {
+    match expr {
+        Expr::Variable(v) => {
+            let mut set = HashSet::new();
+            set.insert(*v);
+            set
+        }
+        Expr::Name(_) => HashSet::new(),
+        Expr::Abstr(v, b) => {
+            let mut set = unbounds_in(b);
+            set.remove(v);
+            set
+        }
+        Expr::Appl(a, b) => {
+            let mut set = unbounds_in(a);
+            for item in unbounds_in(b) {
+                set.insert(item);
+            }
+            set
+        }
+    }
 }
 
 impl fmt::Display for Expr {

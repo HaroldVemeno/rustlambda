@@ -1,7 +1,7 @@
 use core::panic;
 use empty_box::EmptyBox;
 use std::collections::HashSet;
-use std::{ascii, error, fmt};
+use std::{error, fmt};
 
 use crate::expr::Expr;
 
@@ -23,7 +23,6 @@ pub fn reduce_nolog(mut expr: Box<Expr>) -> Result<Box<Expr>, Box<dyn error::Err
                     println!("Took {} iterations", i + s);
                     return Ok(e);
                 }
-
             };
         }
         //println!("{}", expr);
@@ -173,49 +172,7 @@ fn replace_var(expr: Box<Expr>, from: u8, to: u8) -> Box<Expr> {
     })
 }
 
-fn unbounds_in(expr: &Expr) -> HashSet<u8> {
-    match expr {
-        Expr::Variable(v) => {
-            let mut set = HashSet::new();
-            set.insert(*v);
-            set
-        }
-        Expr::Name(_) => HashSet::new(),
-        Expr::Abstr(v, b) => {
-            let mut set = unbounds_in(b);
-            set.remove(v);
-            set
-        }
-        Expr::Appl(a, b) => {
-            let mut set = unbounds_in(a);
-            for item in unbounds_in(b) {
-                set.insert(item);
-            }
-            set
-        }
-    }
-}
 
-fn size(expr: &Expr) -> u32 {
-    let mut ret = 0;
-    let mut stack = Vec::new();
-    let mut next = expr;
-    loop {
-        ret += 1;
-        next = match next {
-            Expr::Variable(_) | Expr::Name(_) => match stack.pop() {
-                Some(e) => e,
-                None => break,
-            },
-            Expr::Abstr(_, body) => body,
-            Expr::Appl(a, b) => {
-                stack.push(a);
-                b
-            }
-        }
-    }
-    ret
-}
 
 impl EvalError {
     fn boxed(msg: impl Into<String>) -> Box<EvalError> {
