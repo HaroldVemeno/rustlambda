@@ -5,7 +5,7 @@ use std::fmt;
 use std::io::BufReader;
 use std::io::Read;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Token {
     Char(u8),
     Capitalized(String),
@@ -16,7 +16,7 @@ pub enum Token {
 }
 use Token::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TokenPos {
     pub tok: Token,
     pub row: u32,
@@ -147,5 +147,40 @@ impl fmt::Debug for LexError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let LexError { row, col, msg } = self;
         write!(f, "LexError({}:{}): {}", row, col, msg)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn basic_lex() {
+        assert_eq!(lex(&(b"")[..]).unwrap().len(), 0);
+        assert_eq!(
+            lex(&(b"asdf")[..]).unwrap().as_slice(),
+            &[
+                TokenPos {
+                    tok: Char(b'a'),
+                    col: 1,
+                    row: 1
+                },
+                TokenPos {
+                    tok: Char(b's'),
+                    col: 2,
+                    row: 1
+                },
+                TokenPos {
+                    tok: Char(b'd'),
+                    col: 3,
+                    row: 1
+                },
+                TokenPos {
+                    tok: Char(b'f'),
+                    col: 4,
+                    row: 1
+                },
+            ][..]
+        );
     }
 }
