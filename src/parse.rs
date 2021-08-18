@@ -27,19 +27,20 @@ enum ParserState {
 }
 
 pub fn parse(tokps: Vec<TokenPos>) -> Result<Box<Expr>, Box<dyn Error>> {
-    parse_pkbl(&mut tokps.into_iter().peekable())
+    parse_pkbl(&mut tokps.into_iter().peekable(), 0, 0)
 }
 
-fn parse_pkbl(pkbl: &mut Peekable<vec::IntoIter<TokenPos>>) -> Result<Box<Expr>, Box<dyn Error>> {
+fn parse_pkbl(
+    pkbl: &mut Peekable<vec::IntoIter<TokenPos>>,
+    mut gcol: u32,
+    mut grow: u32,
+) -> Result<Box<Expr>, Box<dyn Error>> {
     use Atom::*;
     use Expr::*;
     use ParserState::*;
 
     let mut state = InExpr;
     let mut stack: Vec<Atom> = vec![];
-
-    let mut grow: u32 = 0;
-    let mut gcol: u32 = 0;
 
     while let Some(tokp) = pkbl.next() {
         use crate::lex::{Token::*, *};
@@ -69,7 +70,7 @@ fn parse_pkbl(pkbl: &mut Peekable<vec::IntoIter<TokenPos>>) -> Result<Box<Expr>,
                 }
             }
             (InExpr, OpParen) => {
-                let scope = parse_pkbl(pkbl)?;
+                let scope = parse_pkbl(pkbl, gcol, grow)?;
                 if matches!(stack.last(), Some(E(_))) {
                     if let Some(E(before)) = stack.pop() {
                         stack.push(E(Box::new(Appl(before, scope))))
@@ -114,7 +115,7 @@ fn parse_pkbl(pkbl: &mut Peekable<vec::IntoIter<TokenPos>>) -> Result<Box<Expr>,
                 stack.push(AbstrParam(v));
             }
             (AbstrParams, Dot) => {
-                let mut tilparend = parse_pkbl(pkbl)?;
+                let mut tilparend = parse_pkbl(pkbl, gcol, grow)?;
                 while matches!(stack.last(), Some(AbstrParam(_))) {
                     if let Some(AbstrParam(c)) = stack.pop() {
                         tilparend = Box::new(Abstr(c, tilparend));
