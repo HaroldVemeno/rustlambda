@@ -103,18 +103,19 @@ pub fn to_church_num(mut n: u32) -> Box<Expr> {
     ret
 }
 
-pub fn from_church_num(e: &Expr) -> Option<u32> {
+///Expr should be fully reduced!!
+pub fn from_church_num(ch_num: &Expr) -> Option<u32> {
     use Expr::*;
-    match e {
-        Abstr(f, box Abstr(x, box body)) => {
+    match ch_num {
+        Abstr(bound_f, box Abstr(bound_x, box body)) => {
             let mut ret: u32 = 0;
-            let mut b: &Expr = body;
+            let mut current_body: &Expr = body;
             loop {
-                b = match b {
-                    Variable(v) if v == x => break Some(ret),
-                    Appl(box Variable(g), box y) if g == f => {
+                current_body = match current_body {
+                    Variable(now_x) if now_x == bound_x => break Some(ret),
+                    Appl(box Variable(now_f), box rest) if now_f == bound_f => {
                         ret += 1;
-                        y
+                        rest
                     }
                     _ => break None,
                 }

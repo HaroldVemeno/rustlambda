@@ -1,19 +1,19 @@
-use std::panic;
 use empty_box::EmptyBox;
 use std::collections::HashSet;
 use std::error;
+use std::panic;
 
 use super::EvalError;
-use crate::expr::{Expr, size, unbounds_in};
+use crate::expr::{size, unbounds_in, Expr};
 
-pub fn reduce_nolog(mut expr: Box<Expr>) -> Result<Box<Expr>, Box<dyn error::Error>> {
+pub fn reduce(mut expr: Box<Expr>) -> Result<Box<Expr>, Box<dyn error::Error>> {
     let max_iterations = 1000;
     let step = 1;
     let max_size = 1000000;
 
     for i in (1..=max_iterations).step_by(step) {
         for s in 1..=step {
-            expr = match do_reduce_nolog(expr) {
+            expr = match do_reduce(expr) {
                 (e, true) => e,
                 (e, false) => {
                     println!("Took {} iterations", i + s);
@@ -36,7 +36,7 @@ pub fn reduce_nolog(mut expr: Box<Expr>) -> Result<Box<Expr>, Box<dyn error::Err
     )))
 }
 
-fn do_reduce_nolog(expr: Box<Expr>) -> (Box<Expr>, bool) {
+fn do_reduce(expr: Box<Expr>) -> (Box<Expr>, bool) {
     //println!("do_reduce_nolog: {}", expr);
 
     use Expr::*;
@@ -54,11 +54,11 @@ fn do_reduce_nolog(expr: Box<Expr>) -> (Box<Expr>, bool) {
         Abstr(var, box Appl(rest, box Variable(last)))
             if var == last && !unbounds_in(&rest).contains(&var) =>
         {
-            (*do_reduce_nolog(rest).0, true)
+            (*do_reduce(rest).0, true)
         }
         //   Reduce[\a.E]  =>  \a.Reduce[E]
         Abstr(var, body) => {
-            let (e, r) = do_reduce_nolog(body);
+            let (e, r) = do_reduce(body);
             (Abstr(var, e), r)
         }
 
@@ -67,7 +67,7 @@ fn do_reduce_nolog(expr: Box<Expr>) -> (Box<Expr>, bool) {
         Appl(box Abstr(from, body), to) => (*beta_reduce(body, from, to), true),
         //   Reduce[AB]
         Appl(a, to) => {
-            let (red_box, is_red) = do_reduce_nolog(a);
+            let (red_box, is_red) = do_reduce(a);
             let (reduced_a, red_eb) = EmptyBox::take(red_box);
             match reduced_a {
                 //   if Reduce[A] => \x.C
@@ -76,7 +76,7 @@ fn do_reduce_nolog(expr: Box<Expr>) -> (Box<Expr>, bool) {
                 Abstr(from, body) => (*beta_reduce(body, from, to), true),
                 //   else Reduce[AB] => (Reduce[A])(Reduce[B])
                 other => {
-                    let (e, r) = do_reduce_nolog(to);
+                    let (e, r) = do_reduce(to);
                     (Appl(red_eb.put(other), e), r || is_red)
                 }
             }

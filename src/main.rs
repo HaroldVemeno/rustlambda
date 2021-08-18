@@ -1,4 +1,5 @@
-use rustlambda::{eval, lex, parse};
+#[allow(unused_imports)]
+use rustlambda::{eval, expr, lex, parse};
 
 use std::env;
 use std::error::Error;
@@ -22,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // eprintln!("{}\n", parsed);
 
     eprintln!("Evaluating\n");
-    let evaluated = eval::reduce_nolog(parsed)?;
+    let evaluated = eval::reduce(parsed)?;
     // eprintln!("{:#}\n", evaluated);
     // eprintln!("{:?}\n", evaluated);
     eprintln!("{}\n", evaluated);
