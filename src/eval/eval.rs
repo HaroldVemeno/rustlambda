@@ -15,7 +15,7 @@ pub fn reduce(mut expr: Box<Expr>) -> Result<Box<Expr>, Box<dyn error::Error>> {
             expr = match do_reduce(expr) {
                 (e, true) => e,
                 (e, false) => {
-                    println!("Took {} iterations", i + s);
+                    //println!("Took {} iterations", i + s);
                     return Ok(e);
                 }
             };
