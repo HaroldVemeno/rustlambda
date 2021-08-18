@@ -1,4 +1,3 @@
-use empty_box::EmptyBox;
 use std::collections::HashSet;
 use std::error;
 use std::panic;
@@ -40,7 +39,7 @@ fn do_reduce(expr: Box<Expr>) -> (Box<Expr>, bool) {
     //println!("do_reduce_nolog: {}", expr);
 
     use Expr::*;
-    let (ex, eb) = EmptyBox::take(expr);
+    let ex = *expr;
     // TODO: recursive -> iterative for trivial cases
     let (result, reduced) = match ex {
         // Irreducable
@@ -82,7 +81,7 @@ fn do_reduce(expr: Box<Expr>) -> (Box<Expr>, bool) {
             }
         }
     };
-    (eb.put(result), reduced)
+    (Box::new(result), reduced)
 }
 
 fn beta_reduce(expr: Box<Expr>, from: u8, to: Box<Expr>) -> Box<Expr> {
@@ -104,8 +103,8 @@ fn beta_reduce(expr: Box<Expr>, from: u8, to: Box<Expr>) -> Box<Expr> {
         rest @ (from, to, to_unb): &(u8, Box<Expr>, HashSet<u8>),
     ) -> Box<Expr> {
         use Expr::*;
-        let (ex, eb) = EmptyBox::take(expr);
-        eb.put(match ex {
+        let ex = *expr;
+        Box::new(match ex {
             Name(_) => ex,
             Appl(a, b) => Appl(beta(a, rest), beta(b, rest)),
             Abstr(v, b) => {
@@ -147,8 +146,8 @@ fn alpha(par: u8, body: Box<Expr>, taken: &HashSet<u8>) -> (u8, Box<Expr>) {
 
 fn replace_var(expr: Box<Expr>, from: u8, to: u8) -> Box<Expr> {
     use Expr::*;
-    let (ex, eb) = EmptyBox::take(expr);
-    eb.put(match ex {
+    let ex = *expr;
+    Box::new(match ex {
         Name(_) => ex,
         Appl(a, b) => Appl(replace_var(a, from, to), replace_var(b, from, to)),
         Abstr(v, b) => {
