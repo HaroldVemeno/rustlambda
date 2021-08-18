@@ -84,14 +84,20 @@ fn parse_pkbl(pkbl: &mut Peekable<vec::IntoIter<TokenPos>>) -> Result<Box<Expr>,
                         return Ok(e);
                     } else {
                         return Err(ParseError::boxed(
-                            "last thing on parser stack is somehow not an expression",
+                            "Attempt to close an empty expression",
                             row,
                             col,
                         ));
                     }
+                } else if stack.is_empty() {
+                    return Err(ParseError::boxed(
+                        "Attempt to close an empty expression",
+                        row,
+                        col,
+                    ));
                 } else {
                     return Err(ParseError::boxed(
-                        "too many things in the stack somehow",
+                        "Too many things in the stack somehow",
                         row,
                         col,
                     ));
@@ -128,14 +134,14 @@ fn parse_pkbl(pkbl: &mut Peekable<vec::IntoIter<TokenPos>>) -> Result<Box<Expr>,
                         return Ok(e);
                     } else {
                         return Err(ParseError::boxed(
-                            "last thing on parser stack is somehow not an expression",
+                            "Last thing on parser stack is somehow not an expression",
                             row,
                             col,
                         ));
                     }
                 } else {
                     return Err(ParseError::boxed(
-                        "too many things in the stack somehow",
+                        "Too many things in the stack somehow",
                         row,
                         col,
                     ));
@@ -143,7 +149,7 @@ fn parse_pkbl(pkbl: &mut Peekable<vec::IntoIter<TokenPos>>) -> Result<Box<Expr>,
             }
             (s, t) => {
                 return Err(ParseError::boxed(
-                    format!("unexpected token: {:?} while in state {:?}", t, s,),
+                    format!("Unexpected token: {:?} while in state {:?}", t, s,),
                     row,
                     col,
                 ))
@@ -156,21 +162,23 @@ fn parse_pkbl(pkbl: &mut Peekable<vec::IntoIter<TokenPos>>) -> Result<Box<Expr>,
                 Ok(e)
             } else {
                 Err(ParseError::boxed(
-                    "last thing on parser stack is somehow not an expression",
+                    "Last thing on parser stack is somehow not an expression",
                     grow,
                     gcol,
                 ))
             }
+        } else if stack.is_empty() {
+            Err(ParseError::boxed("Empty expression", grow, gcol))
         } else {
             Err(ParseError::boxed(
-                "too many things in the stack somehow",
+                "Too many things in the stack somehow",
                 grow,
                 gcol,
             ))
         }
     } else {
         Err(ParseError::boxed(
-            "input ended with abstr parameters",
+            "Input ended with abstr parameters",
             grow,
             gcol,
         ))
