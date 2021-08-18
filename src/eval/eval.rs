@@ -67,7 +67,7 @@ fn do_reduce(expr: Box<Expr>) -> (Box<Expr>, bool) {
         //   Reduce[AB]
         Appl(a, to) => {
             let (red_box, is_red) = do_reduce(a);
-            let (reduced_a, red_eb) = EmptyBox::take(red_box);
+            let reduced_a = *red_box;
             match reduced_a {
                 //   if Reduce[A] => \x.C
                 //        Beta reduction:
@@ -76,7 +76,7 @@ fn do_reduce(expr: Box<Expr>) -> (Box<Expr>, bool) {
                 //   else Reduce[AB] => (Reduce[A])(Reduce[B])
                 other => {
                     let (e, r) = do_reduce(to);
-                    (Appl(red_eb.put(other), e), r || is_red)
+                    (Appl(Box::new(other), e), r || is_red)
                 }
             }
         }
