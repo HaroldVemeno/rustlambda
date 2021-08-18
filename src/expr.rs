@@ -12,20 +12,20 @@ pub enum Expr {
     Appl(Box<Expr>, Box<Expr>),
 }
 
-pub fn alpha_eq(a: &Expr, b: &Expr) -> bool {
-    match (a, b) {
+pub fn alpha_eq(a_in: &Expr, b_in: &Expr) -> bool {
+    match (a_in, b_in) {
         (Expr::Variable(v), Expr::Variable(w)) => v == w,
         (Expr::Name(n), Expr::Name(m)) => n == m,
-        (Expr::Abstr(v, box b), Expr::Abstr(w, box c)) => {
-            if v == w {
-                alpha_eq(b, c)
+        (Expr::Abstr(a_var, box a_body), Expr::Abstr(b_var, box b_body)) => {
+            if a_var == b_var {
+                alpha_eq(a_body, b_body)
             } else {
                 let mut map = HashMap::new();
-                map.insert(*w, *v);
-                alpha_eq_mapped(b, c, map)
+                map.insert(*b_var, *a_var);
+                alpha_eq_mapped(a_body, b_body, map)
             }
         }
-        (Expr::Appl(f, x), Expr::Appl(g, y)) => alpha_eq(f, g) && alpha_eq(x, y),
+        (Expr::Appl(a_f, a_x), Expr::Appl(b_f, b_x)) => alpha_eq(a_f, b_f) && alpha_eq(a_x, b_x),
         _ => false,
     }
 }
@@ -36,12 +36,10 @@ pub fn alpha_eq_mapped(a: &Expr, b: &Expr, mut b_to_a: HashMap<u8, u8>) -> bool 
         (Expr::Variable(v), Expr::Variable(w)) => v == conv(w),
         (Expr::Name(n), Expr::Name(m)) => n == m,
         (Expr::Abstr(v, box b), Expr::Abstr(w, box c)) => {
-            if v == w {
-                alpha_eq_mapped(b, c, b_to_a)
-            } else {
+            if v != w {
                 b_to_a.insert(*w, *v);
-                alpha_eq_mapped(b, c, b_to_a)
             }
+            alpha_eq_mapped(b, c, b_to_a)
         }
         (Expr::Appl(f, x), Expr::Appl(g, y)) => {
             alpha_eq_mapped(f, g, b_to_a.clone()) && alpha_eq_mapped(x, y, b_to_a)
@@ -126,43 +124,6 @@ pub fn from_church_num(e: &Expr) -> Option<u32> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use Expr::*;
-
-    #[test]
-    fn church_nums0() {
-        let zero = to_church_num(0);
-        assert!(alpha_eq(
-            zero.as_ref(),
-            &Abstr(b'd', Box::new(Abstr(b'r', Box::new(Variable(b'r')))))
-        ));
-        assert_eq!(from_church_num(zero.as_ref()), Some(0));
-    }
-
-    #[test]
-    fn church_nums1() {
-        let one = to_church_num(1);
-        assert!(alpha_eq(
-            one.as_ref(),
-            &Abstr(
-                b'd',
-                Box::new(Abstr(
-                    b'r',
-                    Box::new(Appl(Box::new(Variable(b'd')), Box::new(Variable(b'r'))))
-                ))
-            )
-        ));
-        assert_eq!(from_church_num(one.as_ref()), Some(1));
-    }
-
-    #[test]
-    fn church_nums7() {
-        assert_eq!(from_church_num(to_church_num(7).as_ref()), Some(7));
-    }
-}
-
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Expr::*;
@@ -237,3 +198,94 @@ impl fmt::Display for Expr {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+    use crate::{parse::parse, lex::lex};
+
+    use super::*;
+    use Expr::*;
+
+    #[test]
+    fn unbounds_in_0() -> Result<(), Box<dyn Error>> {
+        let mut set = unbounds_in(parse(lex(r#"\afc.fpad(\qc.cag)"#.as_bytes())?)?.as_ref());
+        assert_eq!(set.len(), 3);
+        assert!(set.remove(&b'p') && set.remove(&b'd') && set.remove(&b'g'));
+        assert!(set.is_empty());
+        Ok(())
+
+    }
+
+    #[test]
+    fn alpha_eq_0() -> Result<(),Box<dyn Error>> {
+        let e1 = parse(lex(r#"\fad.da(lf)"#.as_bytes())?)?;
+        let e2 = parse(lex(r#"\okg.gk(lo)"#.as_bytes())?)?;
+        assert!(alpha_eq(&e1, &e2));
+        Ok(())
+    }
+
+    #[test]
+    fn alpha_eq_1() -> Result<(),Box<dyn Error>> {
+        let e1 = parse(lex(r#"\abc.ba(\b.cb)(\ac.ba)(\ap.caa)"#.as_bytes())?)?;
+        let e2 = parse(lex(r#"\bap.ab(\a.ca)(\bc.ab)(\vc.pvv)"#.as_bytes())?)?;
+        assert!(alpha_eq(&e1, &e2));
+        Ok(())
+    }
+
+    #[test]
+    fn alpha_eq_2() -> Result<(),Box<dyn Error>> {
+        let e1 = parse(lex(r#"\abg.ba(\b.cb)(\ac.ba)(\ap.caa)"#.as_bytes())?)?;
+        let e2 = parse(lex(r#"\bap.ab(\a.ca)(\bc.ab)(\vc.pvv)"#.as_bytes())?)?;
+        assert!(!alpha_eq(&e1, &e2));
+        Ok(())
+    }
+
+    #[test]
+    fn alpha_eq_3() -> Result<(),Box<dyn Error>> {
+        let e1 = parse(lex(r#"\abc.ba(\b.cb)(\ac.ab)(\ap.caa)"#.as_bytes())?)?;
+        let e2 = parse(lex(r#"\bap.ab(\a.ca)(\bc.ab)(\vc.pvv)"#.as_bytes())?)?;
+        assert!(!alpha_eq(&e1, &e2));
+        Ok(())
+    }
+
+    #[test]
+    fn alpha_eq_4() -> Result<(),Box<dyn Error>> {
+        let e1 = parse(lex(r#"\abc.ba(\b.cb)(\ac.ba)(\ap.caa)"#.as_bytes())?)?;
+        let e2 = parse(lex(r#"\bap.ab(\a.ca)(\bc.ab)(\va.pvv)"#.as_bytes())?)?;
+        assert!(alpha_eq(&e1, &e2));
+        Ok(())
+    }
+
+    #[test]
+    fn church_nums_0() {
+        let zero = to_church_num(0);
+        assert!(alpha_eq(
+            zero.as_ref(),
+            &Abstr(b'd', Box::new(Abstr(b'r', Box::new(Variable(b'r')))))
+        ));
+        assert_eq!(from_church_num(zero.as_ref()), Some(0));
+    }
+
+    #[test]
+    fn church_nums_1() {
+        let one = to_church_num(1);
+        assert!(alpha_eq(
+            one.as_ref(),
+            &Abstr(
+                b'd',
+                Box::new(Abstr(
+                    b'r',
+                    Box::new(Appl(Box::new(Variable(b'd')), Box::new(Variable(b'r'))))
+                ))
+            )
+        ));
+        assert_eq!(from_church_num(one.as_ref()), Some(1));
+    }
+
+    #[test]
+    fn church_nums_7() {
+        assert_eq!(from_church_num(to_church_num(7).as_ref()), Some(7));
+    }
+}
+
