@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     eprintln!("Evaluating\n");
     let evaluated = eval::reduce(parsed, true)?;
-    eprintln!("{}\n", evaluated);
+    println!("{}\n", evaluated);
     if let Some(num) = expr::from_church_num(&evaluated) {
         eprintln!("Church num!: {}", num)
     }
