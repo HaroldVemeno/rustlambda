@@ -161,8 +161,10 @@ fn alpha_next(taken: &HashSet<u8>) -> u8 {
     panic!("Ran out of variables");
 }
 
-fn alpha(par: u8, body: Box<Expr>, taken: &HashSet<u8>) -> (u8, Box<Expr>) {
-    let unused = alpha_next(taken);
+fn alpha(par: u8, body: Box<Expr>, to_taken: &HashSet<u8>) -> (u8, Box<Expr>) {
+    let mut taken = unbounds_in(&body);
+    taken.extend(to_taken.iter());
+    let unused = alpha_next(&taken);
     (unused, replace_var(body, par, unused))
 }
 
