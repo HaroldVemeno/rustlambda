@@ -23,10 +23,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     // eprintln!("{}\n", parsed);
 
     eprintln!("Evaluating\n");
-    let evaluated = eval::reduce(parsed)?;
+    let evaluated = eval::reduce(parsed, true)?;
+    eprintln!("{}\n", evaluated);
+    if let Some(num) = expr::from_church_num(&evaluated) {
+        eprintln!("Church num!: {}", num)
+    }
     // eprintln!("{:#}\n", evaluated);
     // eprintln!("{:?}\n", evaluated);
-    eprintln!("{}\n", evaluated);
 
     Ok(())
 }

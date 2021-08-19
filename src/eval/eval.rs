@@ -6,46 +6,57 @@ use std::panic;
 use super::EvalError;
 use crate::expr::{size, unbounds_in, Expr};
 
-pub fn reduce(mut expr: Box<Expr>) -> Result<Box<Expr>, Box<dyn error::Error>> {
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct Stats {
+    reduced: bool,
+    betas: u32,
+    etas: u32,
+    //max_depth: u32,
+    //depth: u32,
+    //size: u32,
+}
+
+pub fn reduce(mut expr: Box<Expr>, print_info: bool) -> Result<Box<Expr>, Box<dyn error::Error>> {
     let max_iterations = 1000;
-    let step = 1;
     let max_size = 1000000;
 
-    for i in (1..=max_iterations).step_by(step) {
-        for s in 1..=step {
-            expr = match do_reduce(expr) {
-                (e, true) => e,
-                (e, false) => {
-                    //println!("Took {} iterations", i + s);
-                    return Ok(e);
-                }
-            };
+    let mut stats = Stats::default();
+    for i in 1..=max_iterations {
+        stats.reduced = false;
+        expr = do_reduce(expr, &mut stats);
+        if !stats.reduced {
+            break;
         }
-        //println!("{}", expr);
+        //println!("Reduce: {}", expr);
         let expr_size = size(&expr);
         if expr_size > max_size {
             return Err(EvalError::boxed(format!(
                 "Size outgrew maximum size: {} out of {}",
                 expr_size, max_size
             )));
+        } else if i == max_iterations {
+            return Err(EvalError::boxed(format!(
+                "Iteration limit reached: {}",
+                max_iterations
+            )));
         }
     }
-    Err(EvalError::boxed(format!(
-        "Iteration limit reached: {}",
-        max_iterations
-    )))
+    if print_info {
+        println! {"{:?}", stats}
+    }
+    Ok(expr)
 }
 
-fn do_reduce(expr: Box<Expr>) -> (Box<Expr>, bool) {
-    //println!("do_reduce_nolog: {}", expr);
+fn do_reduce(expr: Box<Expr>, st: &mut Stats) -> Box<Expr> {
+    //println!("\tdo_reduce: {}", expr);
 
     use Expr::*;
     let (ex, eb) = EmptyBox::take(expr);
     // TODO: recursive -> iterative for trivial cases
-    let (result, reduced) = match ex {
+    let result = match ex {
         // Irreducable
-        Variable(_) => (ex, false),
-        Name(_) => (ex, false), // TODO: name binding and resolution
+        Variable(_) => ex,
+        Name(_) => ex, // TODO: name binding and resolution
 
         // Eta reduction:
         //   Reduce(\a.Ea)
@@ -54,35 +65,45 @@ fn do_reduce(expr: Box<Expr>) -> (Box<Expr>, bool) {
         Abstr(var, box Appl(rest, box Variable(last)))
             if var == last && !unbounds_in(&rest).contains(&var) =>
         {
-            (*do_reduce(rest).0, true)
+            st.etas += 1;
+            st.reduced = true;
+            *do_reduce(rest, st)
         }
         //   Reduce[\a.E]  =>  \a.Reduce[E]
         Abstr(var, body) => {
-            let (e, r) = do_reduce(body);
-            (Abstr(var, e), r)
+            let e = do_reduce(body, st);
+            Abstr(var, e)
         }
 
         // Beta reduction:
         //   Reduce[(\x.A)B]  => Reduce[A[x->B]]
-        Appl(box Abstr(from, body), to) => (*beta_reduce(body, from, to), true),
+        Appl(box Abstr(from, body), to) => {
+            st.betas += 1;
+            st.reduced = true;
+            *beta_reduce(body, from, to)
+        }
         //   Reduce[AB]
         Appl(a, to) => {
-            let (red_box, is_red) = do_reduce(a);
+            let red_box = do_reduce(a, st);
             let (reduced_a, red_eb) = EmptyBox::take(red_box);
             match reduced_a {
                 //   if Reduce[A] => \x.C
                 //        Beta reduction:
                 //        Reduce[AB] => Reduce[(\x.C)B] => Reduce[C[x->B]]
-                Abstr(from, body) => (*beta_reduce(body, from, to), true),
+                Abstr(from, body) => {
+                    st.betas += 1;
+                    st.reduced = true;
+                    *beta_reduce(body, from, to)
+                }
                 //   else Reduce[AB] => (Reduce[A])(Reduce[B])
                 other => {
-                    let (e, r) = do_reduce(to);
-                    (Appl(red_eb.put(other), e), r || is_red)
+                    let e = do_reduce(to, st);
+                    Appl(red_eb.put(other), e)
                 }
             }
         }
     };
-    (eb.put(result), reduced)
+    eb.put(result)
 }
 
 fn beta_reduce(expr: Box<Expr>, from: u8, to: Box<Expr>) -> Box<Expr> {

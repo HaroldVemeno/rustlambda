@@ -13,7 +13,7 @@ pub fn bench_stuff(c: &mut Criterion) {
     c.bench_function("parse", |b| b.iter(|| parse::parse(lexed.clone()).unwrap()));
 
     let parsed = parse::parse(lexed.clone()).unwrap();
-    c.bench_function("eval", |b| b.iter(|| eval::reduce(parsed.clone(), true)));
+    c.bench_function("eval", |b| b.iter(|| eval::reduce(parsed.clone(), false)));
 }
 
 pub fn bench_rec_factorial(c: &mut Criterion) {
@@ -26,7 +26,7 @@ pub fn bench_rec_factorial(c: &mut Criterion) {
     c.bench_function("parse", |b| b.iter(|| parse::parse(lexed.clone()).unwrap()));
 
     let parsed = parse::parse(lexed.clone()).unwrap();
-    c.bench_function("eval", |b| b.iter(|| eval::reduce(parsed.clone(), true)));
+    c.bench_function("eval", |b| b.iter(|| eval::reduce(parsed.clone(), false)));
 }
 criterion_group!(benches, bench_stuff, bench_rec_factorial);
 criterion_main!(benches);
