@@ -1,24 +1,35 @@
 use empty_box::EmptyBox;
 use std::collections::HashSet;
 use std::error;
+use std::fmt;
 use std::panic;
 
 use super::EvalError;
 use crate::expr::{size, unbounds_in, Expr};
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Copy)]
 struct Stats {
     reduced: bool,
     betas: u32,
     etas: u32,
-    //max_depth: u32,
-    //depth: u32,
+    max_depth: u32,
+    depth: u32,
     //size: u32,
 }
 
+impl fmt::Display for Stats {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Stats{betas, etas, max_depth, ..} = *self;
+        writeln!(f, "Stats:")?;
+        writeln!(f, "\tBeta reductions: {}", betas)?;
+        writeln!(f, "\tEta reductions: {}", etas)?;
+        writeln!(f, "\tMaximum depth: {}", max_depth)
+    }
+}
+
 pub fn reduce(mut expr: Box<Expr>, print_info: bool) -> Result<Box<Expr>, Box<dyn error::Error>> {
-    let max_iterations = 1000;
-    let max_size = 1000000;
+    let max_iterations = 10000000;
+    let max_size = 10000000;
 
     let mut stats = Stats::default();
     for i in 1..=max_iterations {
@@ -42,12 +53,16 @@ pub fn reduce(mut expr: Box<Expr>, print_info: bool) -> Result<Box<Expr>, Box<dy
         }
     }
     if print_info {
-        println! {"{:?}", stats}
+        eprintln! {"{}", stats}
     }
     Ok(expr)
 }
 
 fn do_reduce(expr: Box<Expr>, st: &mut Stats) -> Box<Expr> {
+    st.depth += 1;
+    if st.depth > st.max_depth {
+        st.max_depth = st.depth
+    }
     //println!("\tdo_reduce: {}", expr);
 
     use Expr::*;
@@ -103,6 +118,7 @@ fn do_reduce(expr: Box<Expr>, st: &mut Stats) -> Box<Expr> {
             }
         }
     };
+    st.depth -= 1;
     eb.put(result)
 }
 
