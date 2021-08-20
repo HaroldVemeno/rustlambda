@@ -14,16 +14,18 @@ struct Stats {
     etas: u32,
     max_depth: u32,
     depth: u32,
-    //size: u32,
+    size: u32,
+    max_size: u32,
 }
 
 impl fmt::Display for Stats {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let Stats{betas, etas, max_depth, ..} = *self;
+        let Stats{betas, etas, max_depth, max_size, ..} = *self;
         writeln!(f, "Stats:")?;
         writeln!(f, "\tBeta reductions: {}", betas)?;
         writeln!(f, "\tEta reductions: {}", etas)?;
-        writeln!(f, "\tMaximum depth: {}", max_depth)
+        writeln!(f, "\tMaximum depth: {}", max_depth)?;
+        writeln!(f, "\tMaximum size: {}", max_size)
     }
 }
 
@@ -34,11 +36,16 @@ pub fn reduce(mut expr: Box<Expr>, print_info: bool) -> Result<Box<Expr>, Box<dy
     let mut stats = Stats::default();
     for i in 1..=max_iterations {
         stats.reduced = false;
-        expr = do_reduce(expr, &mut stats);
-        if !stats.reduced {
-            break;
+        stats.size = 0;
+    expr = do_reduce(expr, &mut stats);
+        if stats.size > stats.max_size {
+            stats.max_size = stats.size
         }
-        //println!("Reduce: {}", expr);
+        //eprintln!("Reduce: {}", expr);
+        debug_assert_eq!(size(&expr), stats.size);
+        if !stats.reduced {
+            break
+        }
         let expr_size = size(&expr);
         if expr_size > max_size {
             return Err(EvalError::boxed(format!(
@@ -60,6 +67,7 @@ pub fn reduce(mut expr: Box<Expr>, print_info: bool) -> Result<Box<Expr>, Box<dy
 
 fn do_reduce(expr: Box<Expr>, st: &mut Stats) -> Box<Expr> {
     st.depth += 1;
+    st.size += 1;
     if st.depth > st.max_depth {
         st.max_depth = st.depth
     }
@@ -95,10 +103,13 @@ fn do_reduce(expr: Box<Expr>, st: &mut Stats) -> Box<Expr> {
         Appl(box Abstr(from, body), to) => {
             st.betas += 1;
             st.reduced = true;
-            *beta_reduce(body, from, to)
+            let res = beta_reduce(body, from, to);
+            st.size += size(&res) - 1;
+            *res
         }
         //   Reduce[AB]
         Appl(a, to) => {
+            let sz = st.size;
             let red_box = do_reduce(a, st);
             let (reduced_a, red_eb) = EmptyBox::take(red_box);
             match reduced_a {
@@ -108,7 +119,9 @@ fn do_reduce(expr: Box<Expr>, st: &mut Stats) -> Box<Expr> {
                 Abstr(from, body) => {
                     st.betas += 1;
                     st.reduced = true;
-                    *beta_reduce(body, from, to)
+                    let res = beta_reduce(body, from, to);
+                    st.size = sz + size(&res) - 1;
+                    *res
                 }
                 //   else Reduce[AB] => (Reduce[A])(Reduce[B])
                 other => {
