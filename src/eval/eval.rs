@@ -5,7 +5,7 @@ use std::fmt;
 use std::panic;
 
 use super::EvalError;
-use crate::expr::{size, unbounds_in, Expr};
+use crate::expr::Expr;
 
 #[derive(Debug, Default, Clone, Copy)]
 struct Stats {
@@ -42,11 +42,11 @@ pub fn reduce(mut expr: Box<Expr>, print_info: bool) -> Result<Box<Expr>, Box<dy
             stats.max_size = stats.size
         }
         //eprintln!("Reduce: {}", expr);
-        debug_assert_eq!(size(&expr), stats.size);
         if !stats.reduced {
             break
         }
-        let expr_size = size(&expr);
+        let expr_size = expr.size();
+        debug_assert_eq!(expr_size, stats.size);
         if expr_size > max_size {
             return Err(EvalError::boxed(format!(
                 "Size outgrew maximum size: {} out of {}",
@@ -86,7 +86,7 @@ fn do_reduce(expr: Box<Expr>, st: &mut Stats) -> Box<Expr> {
         //   a is not free in E
         //=> Reduce(E)
         Abstr(var, box Appl(rest, box Variable(last)))
-            if var == last && !unbounds_in(&rest).contains(&var) =>
+            if var == last && !rest.unbounds().contains(&var) =>
         {
             st.etas += 1;
             st.reduced = true;
@@ -104,7 +104,7 @@ fn do_reduce(expr: Box<Expr>, st: &mut Stats) -> Box<Expr> {
             st.betas += 1;
             st.reduced = true;
             let res = beta_reduce(body, from, to);
-            st.size += size(&res) - 1;
+            st.size += res.size() - 1;
             *res
         }
         //   Reduce[AB]
@@ -120,7 +120,7 @@ fn do_reduce(expr: Box<Expr>, st: &mut Stats) -> Box<Expr> {
                     st.betas += 1;
                     st.reduced = true;
                     let res = beta_reduce(body, from, to);
-                    st.size = sz + size(&res) - 1;
+                    st.size = sz + res.size() - 1;
                     *res
                 }
                 //   else Reduce[AB] => (Reduce[A])(Reduce[B])
@@ -136,7 +136,7 @@ fn do_reduce(expr: Box<Expr>, st: &mut Stats) -> Box<Expr> {
 }
 
 fn beta_reduce(expr: Box<Expr>, from: u8, to: Box<Expr>) -> Box<Expr> {
-    let mut unbounds_to = unbounds_in(&to);
+    let mut unbounds_to = to.unbounds();
     unbounds_to.insert(from);
 
     //println!("beta_reduce: {}", expr);
@@ -191,7 +191,7 @@ fn alpha_next(taken: &HashSet<u8>) -> u8 {
 }
 
 fn alpha(par: u8, body: Box<Expr>, to_taken: &HashSet<u8>) -> (u8, Box<Expr>) {
-    let mut taken = unbounds_in(&body);
+    let mut taken = body.unbounds();
     taken.extend(to_taken.iter());
     let unused = alpha_next(&taken);
     (unused, replace_var(body, par, unused))
