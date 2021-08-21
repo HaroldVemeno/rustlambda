@@ -155,10 +155,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn basic_lex() {
-        assert_eq!(lex(&(b"")[..]).unwrap().len(), 0);
+    fn lex1() {
+        assert_eq!(lex("".as_bytes()).unwrap().len(), 0);
         assert_eq!(
-            lex(&(b"asdf")[..]).unwrap().as_slice(),
+            lex("as  df\ng".as_bytes()).unwrap().as_slice(),
             &[
                 TokenPos {
                     tok: Char(b'a'),
@@ -172,15 +172,44 @@ mod tests {
                 },
                 TokenPos {
                     tok: Char(b'd'),
-                    col: 3,
+                    col: 5,
                     row: 1
                 },
                 TokenPos {
                     tok: Char(b'f'),
-                    col: 4,
+                    col: 6,
                     row: 1
                 },
-            ][..]
+                TokenPos {
+                    tok: Char(b'g'),
+                    col: 1,
+                    row: 2
+                },
+            ]
         );
+        assert_eq!(
+            lex("Name".as_bytes()).unwrap().as_slice(),
+            &[TokenPos {
+                tok: Capitalized("Name".into()),
+                col: 1,
+                row: 1
+            }]
+        );
+    }
+
+    #[test]
+    fn lex2() {
+        let src = r" (\fx.f(fx))(\fx.f(fx))";
+        assert!(lex(src.as_bytes()).is_ok());
+        let src = "\n\t  \t\n  \n  \n\r \r  ";
+        assert!(lex(src.as_bytes()).is_ok());
+        let src = r"\asd \fj\asdgj s..jd.AS .DFja sdf\ .aghj";
+        assert!(lex(src.as_bytes()).is_ok());
+        let src = r"asdl\.\(()\)asfd fda \. a.\sd)()()l agsAS DF ((  ))";
+        assert!(lex(src.as_bytes()).is_ok());
+        let src = r" ahgsdfiphgp ;jhl3((((((((40218u fgSDFG as\\..\. \a\. ";
+        assert!(lex(src.as_bytes()).is_err());
+        let src = r" ahgsdfiphgp jhl3((((((((40218u fgSDFG as\\./.\. \a\. ";
+        assert!(lex(src.as_bytes()).is_err());
     }
 }
