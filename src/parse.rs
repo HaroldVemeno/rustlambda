@@ -7,9 +7,11 @@ use std::vec;
 use crate::expr::Expr;
 use crate::lex::*;
 
+#[derive(Clone, Debug)]
 enum Atom {
     E(Box<Expr>),
     AbstrParam(u8),
+    ParenStart,
 }
 
 #[derive(Clone)]
@@ -19,22 +21,32 @@ pub struct ParseError {
     pub col: u32,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum ParserState {
     InExpr,
     AbstrInit,
     AbstrParams,
 }
 
+type TokPeekable = Peekable<vec::IntoIter<TokenPos>>;
+
 pub fn parse(tokps: Vec<TokenPos>) -> Result<Box<Expr>, Box<dyn Error>> {
-    parse_pkbl(&mut tokps.into_iter().peekable(), 0, 0)
+    parse_pkbl(&mut tokps.into_iter().peekable())
 }
 
-fn parse_pkbl(
-    pkbl: &mut Peekable<vec::IntoIter<TokenPos>>,
-    mut gcol: u32,
-    mut grow: u32,
-) -> Result<Box<Expr>, Box<dyn Error>> {
+fn append(stack: &mut Vec<Atom>, expr: Box<Expr>) {
+    use Atom::*;
+    use Expr::*;
+    if matches!(stack.last(), Some(E(_))) {
+        if let Some(E(before)) = stack.pop() {
+            stack.push(E(Box::new(Appl(before, expr))))
+        }
+    } else {
+        stack.push(E(expr));
+    }
+}
+
+fn parse_pkbl(pkbl: &mut TokPeekable) -> Result<Box<Expr>, Box<dyn Error>> {
     use Atom::*;
     use Expr::*;
     use ParserState::*;
@@ -42,67 +54,66 @@ fn parse_pkbl(
     let mut state = InExpr;
     let mut stack: Vec<Atom> = vec![];
 
+    let mut gcol: u32 = 0;
+    let mut grow: u32 = 0;
+
     while let Some(tokp) = pkbl.next() {
-        use crate::lex::{Token::*, *};
+        use crate::lex::Token::*;
 
         let TokenPos { tok, row, col } = tokp;
         gcol = col;
         grow = row;
         match (&state, tok) {
             (InExpr, Char(v)) => {
-                let var = Box::new(Variable(v));
-                if matches!(stack.last(), Some(E(_))) {
-                    if let Some(E(before)) = stack.pop() {
-                        stack.push(E(Box::new(Appl(before, var))))
-                    }
-                } else {
-                    stack.push(E(var));
-                }
+                append(&mut stack, Box::new(Variable(v)));
             }
             (InExpr, Capitalized(s)) => {
-                let name = Box::new(Name(s));
-                if matches!(stack.last(), Some(E(_))) {
-                    if let Some(E(before)) = stack.pop() {
-                        stack.push(E(Box::new(Appl(before, name))))
-                    }
-                } else {
-                    stack.push(E(name));
-                }
+                append(&mut stack, Box::new(Name(s)));
             }
             (InExpr, OpParen) => {
-                let scope = parse_pkbl(pkbl, gcol, grow)?;
-                if matches!(stack.last(), Some(E(_))) {
-                    if let Some(E(before)) = stack.pop() {
-                        stack.push(E(Box::new(Appl(before, scope))))
-                    }
-                } else {
-                    stack.push(E(scope));
-                }
+                stack.push(ParenStart);
             }
             (InExpr, ClParen) => {
-                if stack.len() == 1 {
-                    if let Some(E(e)) = stack.pop() {
-                        return Ok(e);
-                    } else {
-                        return Err(ParseError::boxed(
-                            "Attempt to close an empty expression",
+                let mut top =
+                    match stack.pop() {
+                        Some(ParenStart) => {
+                            return Err(ParseError::boxed(
+                                "Attempt to close an empty expression",
+                                row,
+                                col,
+                            ))
+                        }
+                        Some(AbstrParam(_)) => {
+                            return Err(ParseError::boxed(
+                                "Attempt to close an abstraction with an empty body",
+                                row,
+                                col,
+                            ))
+                        }
+                        None => return Err(ParseError::boxed(
+                            "First token should not be a closing parenthesis for spiritual reasons",
                             row,
                             col,
-                        ));
+                        )),
+                        Some(E(expr)) => expr,
+                    };
+                loop {
+                    // until top atom isn't the start of a paren pair
+                    // ..or nothing is left
+                    top = match stack.pop() {
+                        Some(ParenStart) => break,
+                        Some(AbstrParam(p)) => Box::new(Abstr(p, top)),
+                        Some(E(expr)) => Box::new(Appl(expr, top)),
+                        None => {
+                            return Err(ParseError::boxed(
+                                "Closing parenthesis has no opening parenthesis",
+                                row,
+                                col,
+                            ))
+                        }
                     }
-                } else if stack.is_empty() {
-                    return Err(ParseError::boxed(
-                        "Attempt to close an empty expression",
-                        row,
-                        col,
-                    ));
-                } else {
-                    return Err(ParseError::boxed(
-                        "Too many things in the stack somehow",
-                        row,
-                        col,
-                    ));
                 }
+                append(&mut stack, top);
             }
             (InExpr, Backslash) => {
                 state = AbstrInit;
@@ -115,38 +126,7 @@ fn parse_pkbl(
                 stack.push(AbstrParam(v));
             }
             (AbstrParams, Dot) => {
-                let mut tilparend = parse_pkbl(pkbl, gcol, grow)?;
-                while matches!(stack.last(), Some(AbstrParam(_))) {
-                    if let Some(AbstrParam(c)) = stack.pop() {
-                        tilparend = Box::new(Abstr(c, tilparend));
-                    } else {
-                        unreachable!();
-                    }
-                }
-                if matches!(stack.last(), Some(E(_))) {
-                    if let Some(E(before)) = stack.pop() {
-                        stack.push(E(Box::new(Appl(before, tilparend))))
-                    }
-                } else {
-                    stack.push(E(tilparend));
-                }
-                if stack.len() == 1 {
-                    if let Some(E(e)) = stack.pop() {
-                        return Ok(e);
-                    } else {
-                        return Err(ParseError::boxed(
-                            "Last thing on parser stack is somehow not an expression",
-                            row,
-                            col,
-                        ));
-                    }
-                } else {
-                    return Err(ParseError::boxed(
-                        "Too many things in the stack somehow",
-                        row,
-                        col,
-                    ));
-                }
+                state = InExpr;
             }
             (s, t) => {
                 return Err(ParseError::boxed(
@@ -157,29 +137,42 @@ fn parse_pkbl(
             }
         }
     }
-    if let InExpr = state {
-        if stack.len() == 1 {
-            if let Some(E(e)) = stack.pop() {
-                Ok(e)
-            } else {
-                Err(ParseError::boxed(
-                    "Last thing on parser stack is somehow not an expression",
+    if state == InExpr {
+        let mut top = match stack.pop() {
+            Some(ParenStart) => {
+                return Err(ParseError::boxed(
+                    "Input ended with an open parenthesis",
                     grow,
                     gcol,
                 ))
             }
-        } else if stack.is_empty() {
-            Err(ParseError::boxed("Empty expression", grow, gcol))
-        } else {
-            Err(ParseError::boxed(
-                "Too many things in the stack somehow",
-                grow,
-                gcol,
-            ))
+            Some(AbstrParam(_)) => {
+                // unreachable?
+                return Err(ParseError::boxed(
+                    "Input ended with an open abstraction",
+                    grow,
+                    gcol,
+                ));
+            }
+            None => return Err(ParseError::boxed("Can't parse nothing", grow, gcol)),
+            Some(E(expr)) => expr,
+        };
+        loop {
+            // until top atom isn't the start of a paren pair
+            // ..or nothing is left
+            top = match stack.pop() {
+                Some(ParenStart) => {
+                    return Err(ParseError::boxed("An unclosed parenthesis", grow, gcol))
+                }
+                Some(AbstrParam(p)) => Box::new(Abstr(p, top)),
+                Some(E(expr)) => Box::new(Appl(expr, top)),
+                None => break
+            }
         }
+        Ok(top)
     } else {
         Err(ParseError::boxed(
-            "Input ended with abstr parameters",
+            "Input ended with an unfinished abstraction",
             grow,
             gcol,
         ))
