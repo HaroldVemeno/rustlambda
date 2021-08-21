@@ -20,12 +20,22 @@ struct Stats {
 
 impl fmt::Display for Stats {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let Stats{betas, etas, max_depth, max_size, ..} = *self;
-        writeln!(f, "Stats:")?;
-        writeln!(f, "\tBeta reductions: {}", betas)?;
-        writeln!(f, "\tEta reductions: {}", etas)?;
-        writeln!(f, "\tMaximum depth: {}", max_depth)?;
-        writeln!(f, "\tMaximum size: {}", max_size)
+        let Stats {
+            betas,
+            etas,
+            max_depth,
+            max_size,
+            ..
+        } = *self;
+        writeln!(
+            f,
+            r#"Stats:
+	Beta reductions: {}
+	Eta reductions: {}
+	Maximum depth: {}
+	Maximum size: {}"#,
+            betas, etas, max_depth, max_size
+        )
     }
 }
 
@@ -37,13 +47,13 @@ pub fn reduce(mut expr: Box<Expr>, print_info: bool) -> Result<Box<Expr>, Box<dy
     for i in 1..=max_iterations {
         stats.reduced = false;
         stats.size = 0;
-    expr = do_reduce(expr, &mut stats);
+        expr = do_reduce(expr, &mut stats);
         if stats.size > stats.max_size {
             stats.max_size = stats.size
         }
         //eprintln!("Reduce: {}", expr);
         if !stats.reduced {
-            break
+            break;
         }
         let expr_size = expr.size();
         debug_assert_eq!(expr_size, stats.size);

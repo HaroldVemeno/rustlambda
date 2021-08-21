@@ -264,9 +264,10 @@ mod tests {
     #[test]
     fn church_nums_0() {
         let zero = Expr::to_church_num(0);
-        assert!(zero.alpha_eq(
-            &Abstr(b'd', Box::new(Abstr(b'r', Box::new(Variable(b'r')))))
-        ));
+        assert!(zero.alpha_eq(&Abstr(
+            b'd',
+            Box::new(Abstr(b'r', Box::new(Variable(b'r'))))
+        )));
         assert_eq!(zero.from_church_num(), Some(0));
     }
 

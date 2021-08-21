@@ -1,3 +1,5 @@
 (\n.((\f.(\x.x x) (\x.f (x x))) (\cnmfx.(\d.(\n.n (\x.(\ab.b)) (\ab.a)) d ((\fx.x) f x) (f (c d m f x)))
 ((\mn.n (\nfx.n (\gh.h (g f)) (\u.x) (\u.u)) m) n m))) ((\nfx. f (n f x)) n))
-(\fx.f (f (f (f (f (f (f (f (f x))))))))) (\fx.f (f (f x)))
+
+(\fx.f(f(f(f(f(f(f(f(f(f(f(f(f(f(fx)))))))))))))))
+(\fx.f(f(fx)))
