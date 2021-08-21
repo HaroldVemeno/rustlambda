@@ -91,7 +91,7 @@ fn parse_pkbl(pkbl: &mut TokPeekable) -> Result<Box<Expr>, Box<dyn Error>> {
                             ))
                         }
                         None => return Err(ParseError::boxed(
-                            "First token should not be a closing parenthesis for spiritual reasons",
+                            "First token should not be a closing parenthesis :thinking:",
                             row,
                             col,
                         )),
@@ -261,7 +261,18 @@ mod tests {
             .and_then(parse)
             .is_ok());
         assert!(lex(r"(asa)asdf(asdf)".as_bytes()).and_then(parse).is_ok());
+        assert!(lex(r"\ame.\a.che".as_bytes()).and_then(parse).is_ok());
         assert!(lex(r"asa)".as_bytes()).and_then(parse).is_err());
+        assert!(lex(r")".as_bytes()).and_then(parse).is_err());
+        assert!(lex(r"(".as_bytes()).and_then(parse).is_err());
+        assert!(lex(r"(aaa".as_bytes()).and_then(parse).is_err());
+        assert!(lex(r"(aaa(asdf)".as_bytes()).and_then(parse).is_err());
+        assert!(lex(r"pop)".as_bytes()).and_then(parse).is_err());
+        assert!(lex(r"\".as_bytes()).and_then(parse).is_err());
+        assert!(lex(r"\sdf".as_bytes()).and_then(parse).is_err());
+        assert!(lex(r"\sdf.".as_bytes()).and_then(parse).is_err());
+        assert!(lex(r"\Name.a".as_bytes()).and_then(parse).is_err());
+        assert!(lex(r"\am\e.a".as_bytes()).and_then(parse).is_err());
         assert!(lex(r"(asa\df.)(asdf)".as_bytes()).and_then(parse).is_err());
         assert!(lex(r"(asa\.asdf)(asdf)".as_bytes())
             .and_then(parse)
