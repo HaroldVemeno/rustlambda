@@ -223,3 +223,63 @@ impl<A> From<ParseError> for Result<A, ParseError> {
         Err(val)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lex::lex;
+    use Expr::*;
+
+    #[test]
+    fn parse1() {
+        let p1 = lex("asd".as_bytes()).and_then(parse).unwrap();
+        assert!(matches!(
+            p1,
+            box Appl(
+                box Appl(box Variable(b'a'), box Variable(b's')),
+                box Variable(b'd')
+            )
+        ));
+        let p2 = lex("(as)d".as_bytes()).and_then(parse).unwrap();
+        assert!(p1.alpha_eq(&p2));
+        let p3 = lex("a(sd)".as_bytes()).and_then(parse).unwrap();
+        assert!(!p1.alpha_eq(&p3));
+
+        let p = lex("Name".as_bytes()).and_then(parse).unwrap();
+        assert!(matches!(
+           p, box Name(n) if n == "Name"
+        ));
+        let p = lex("1234".as_bytes()).and_then(parse).unwrap();
+        assert!(matches!(
+           p, box Name(n) if n == "1234"
+        ));
+        let p = lex("_23asdf_dfs".as_bytes()).and_then(parse).unwrap();
+        assert!(matches!(
+           p, box Name(n) if n == "_23asdf_dfs"
+        ));
+
+        assert!(lex(r"(as)dasfd".as_bytes()).and_then(parse).is_ok());
+        assert!(lex(r"(as)dasfd".as_bytes()).and_then(parse).is_ok());
+        assert!(lex(r"ASDFfdas".as_bytes()).and_then(parse).is_ok());
+        assert!(lex(r"(asadf)(asdf)".as_bytes()).and_then(parse).is_ok());
+        assert!(lex(r"\asdf.pbj".as_bytes()).and_then(parse).is_ok());
+        assert!(lex(r"\asdf.(pb)j".as_bytes()).and_then(parse).is_ok());
+        assert!(lex(r"(asa\df.fovp)(asdf)".as_bytes())
+            .and_then(parse)
+            .is_ok());
+        assert!(lex(r"(asa)asdf(asdf)".as_bytes()).and_then(parse).is_ok());
+        assert!(lex(r"asa)".as_bytes()).and_then(parse).is_err());
+        assert!(lex(r"(asa\df.)(asdf)".as_bytes()).and_then(parse).is_err());
+        assert!(lex(r"(asa\.asdf)(asdf)".as_bytes())
+            .and_then(parse)
+            .is_err());
+        assert!(lex(r"(asa\()).asdf)(asdf)".as_bytes())
+            .and_then(parse)
+            .is_err());
+        assert!(lex(r"(asa\()(.asdf)(asdf)".as_bytes())
+            .and_then(parse)
+            .is_err());
+        assert!(lex(r"()asdf(asdf)".as_bytes()).and_then(parse).is_err());
+        assert!(lex(r"asa)asdf(asdf".as_bytes()).and_then(parse).is_err());
+    }
+}
