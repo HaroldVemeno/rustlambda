@@ -74,29 +74,30 @@ fn parse_pkbl(pkbl: &mut TokPeekable) -> Result<Box<Expr>, Box<dyn Error>> {
                 stack.push(ParenStart);
             }
             (InExpr, ClParen) => {
-                let mut top =
-                    match stack.pop() {
-                        Some(ParenStart) => {
-                            return Err(ParseError::boxed(
-                                "Attempt to close an empty expression",
-                                row,
-                                col,
-                            ))
-                        }
-                        Some(AbstrParam(_)) => {
-                            return Err(ParseError::boxed(
-                                "Attempt to close an abstraction with an empty body",
-                                row,
-                                col,
-                            ))
-                        }
-                        None => return Err(ParseError::boxed(
+                let mut top = match stack.pop() {
+                    Some(ParenStart) => {
+                        return Err(ParseError::boxed(
+                            "Attempt to close an empty expression",
+                            row,
+                            col,
+                        ))
+                    }
+                    Some(AbstrParam(_)) => {
+                        return Err(ParseError::boxed(
+                            "Attempt to close an abstraction with an empty body",
+                            row,
+                            col,
+                        ))
+                    }
+                    None => {
+                        return Err(ParseError::boxed(
                             "First token should not be a closing parenthesis :thinking:",
                             row,
                             col,
-                        )),
-                        Some(E(expr)) => expr,
-                    };
+                        ))
+                    }
+                    Some(E(expr)) => expr,
+                };
                 loop {
                     // until top atom isn't the start of a paren pair
                     // ..or nothing is left
@@ -166,7 +167,7 @@ fn parse_pkbl(pkbl: &mut TokPeekable) -> Result<Box<Expr>, Box<dyn Error>> {
                 }
                 Some(AbstrParam(p)) => Box::new(Abstr(p, top)),
                 Some(E(expr)) => Box::new(Appl(expr, top)),
-                None => break
+                None => break,
             }
         }
         Ok(top)
@@ -251,39 +252,51 @@ mod tests {
            p, box Name(n) if n == "_23asdf_dfs"
         ));
 
-        assert!(lex(r"(as)dasfd".as_bytes()).and_then(parse).is_ok());
-        assert!(lex(r"(as)dasfd".as_bytes()).and_then(parse).is_ok());
-        assert!(lex(r"ASDFfdas".as_bytes()).and_then(parse).is_ok());
-        assert!(lex(r"(asadf)(asdf)".as_bytes()).and_then(parse).is_ok());
-        assert!(lex(r"\asdf.pbj".as_bytes()).and_then(parse).is_ok());
-        assert!(lex(r"\asdf.(pb)j".as_bytes()).and_then(parse).is_ok());
-        assert!(lex(r"(asa\df.fovp)(asdf)".as_bytes())
-            .and_then(parse)
-            .is_ok());
-        assert!(lex(r"(asa)asdf(asdf)".as_bytes()).and_then(parse).is_ok());
-        assert!(lex(r"\ame.\a.che".as_bytes()).and_then(parse).is_ok());
-        assert!(lex(r"asa)".as_bytes()).and_then(parse).is_err());
-        assert!(lex(r")".as_bytes()).and_then(parse).is_err());
-        assert!(lex(r"(".as_bytes()).and_then(parse).is_err());
-        assert!(lex(r"(aaa".as_bytes()).and_then(parse).is_err());
-        assert!(lex(r"(aaa(asdf)".as_bytes()).and_then(parse).is_err());
-        assert!(lex(r"pop)".as_bytes()).and_then(parse).is_err());
-        assert!(lex(r"\".as_bytes()).and_then(parse).is_err());
-        assert!(lex(r"\sdf".as_bytes()).and_then(parse).is_err());
-        assert!(lex(r"\sdf.".as_bytes()).and_then(parse).is_err());
-        assert!(lex(r"\Name.a".as_bytes()).and_then(parse).is_err());
-        assert!(lex(r"\am\e.a".as_bytes()).and_then(parse).is_err());
-        assert!(lex(r"(asa\df.)(asdf)".as_bytes()).and_then(parse).is_err());
-        assert!(lex(r"(asa\.asdf)(asdf)".as_bytes())
-            .and_then(parse)
-            .is_err());
-        assert!(lex(r"(asa\()).asdf)(asdf)".as_bytes())
-            .and_then(parse)
-            .is_err());
-        assert!(lex(r"(asa\()(.asdf)(asdf)".as_bytes())
-            .and_then(parse)
-            .is_err());
-        assert!(lex(r"()asdf(asdf)".as_bytes()).and_then(parse).is_err());
-        assert!(lex(r"asa)asdf(asdf".as_bytes()).and_then(parse).is_err());
+        let ok = [
+            r"(as)dasfd",
+            r"(as)dasfd",
+            r"ASDFfdas",
+            r"(asadf)(asdf)",
+            r"\asdf.pbj",
+            r"\asdf.(pb)j",
+            r"(asa\df.fovp)(asdf)",
+            r"(asa)asdf(asdf)",
+            r"\ame.\a.che",
+        ];
+
+        assert!(ok
+            .iter()
+            .map(|a| a.as_bytes())
+            .map(lex)
+            .map(|a| a.and_then(parse))
+            .all(|a| a.is_ok()));
+
+        let err = [
+            r"asa)                ",
+            r")                   ",
+            r"(                   ",
+            r"(aaa                ",
+            r"(aaa(asdf)          ",
+            r"pop)                ",
+            r"\                   ",
+            r"\sdf                ",
+            r"\sdf.               ",
+            r"\Name.a             ",
+            r"\am\e.a             ",
+            r"(asa\df.)(asdf)     ",
+            r"(asa\.asdf)(asdf)   ",
+            r"(asa\()).asdf)(asdf)",
+            r"(asa\()(.asdf)(asdf)",
+            r"()asdf(asdf)        ",
+            r"asa)asdf(asdf       ",
+        ];
+
+        assert!(err
+            .iter()
+            .map(|a| a.as_bytes())
+            .map(lex)
+            .map(|a| a.and_then(parse))
+            .all(|a| a.is_err()));
+
     }
 }
