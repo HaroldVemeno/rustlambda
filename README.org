@@ -1,10 +1,11 @@
 * rustlambda
 A lambda calculus parser and evaluator written in rust
-** TODO
+** Goals
 - [ ] tests pls
 - [ ] linear optimnization
 - [ ] lazier strategy? call by need?
 - [ ] do names already
+- [ ] unicode
 |---------------------+----------------------+-------------+--------|
 | Strategy            | Speed                | Lines       | Fails? |
 |---------------------+----------------------+-------------+--------|
