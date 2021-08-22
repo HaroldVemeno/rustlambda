@@ -97,7 +97,7 @@ impl Expr {
         }
     }
 
-    pub fn to_church_num(mut n: u32) -> Box<Expr> {
+    pub fn church_num(mut n: u32) -> Box<Expr> {
         use Expr::*;
         let mut ret = Box::new(Variable(b'x'));
         while n > 0 {
@@ -108,7 +108,7 @@ impl Expr {
         ret
     }
 
-    pub fn from_church_num(&self) -> Option<u32> {
+    pub fn try_unchurch_num(&self) -> Option<u32> {
         use Expr::*;
         match self {
             Abstr(bound_f, box Abstr(bound_x, box body)) => {
@@ -263,17 +263,17 @@ mod tests {
 
     #[test]
     fn church_nums_0() {
-        let zero = Expr::to_church_num(0);
+        let zero = Expr::church_num(0);
         assert!(zero.alpha_eq(&Abstr(
             b'd',
             Box::new(Abstr(b'r', Box::new(Variable(b'r'))))
         )));
-        assert_eq!(zero.from_church_num(), Some(0));
+        assert_eq!(zero.try_unchurch_num(), Some(0));
     }
 
     #[test]
     fn church_nums_1() {
-        let one = Expr::to_church_num(1);
+        let one = Expr::church_num(1);
         assert!(one.alpha_eq(&Abstr(
             b'd',
             Box::new(Abstr(
@@ -281,11 +281,11 @@ mod tests {
                 Box::new(Appl(Box::new(Variable(b'd')), Box::new(Variable(b'r'))))
             ))
         )));
-        assert_eq!(one.from_church_num(), Some(1));
+        assert_eq!(one.try_unchurch_num(), Some(1));
     }
 
     #[test]
     fn church_nums_7() {
-        assert_eq!(Expr::to_church_num(7).from_church_num(), Some(7));
+        assert_eq!(Expr::church_num(7).try_unchurch_num(), Some(7));
     }
 }

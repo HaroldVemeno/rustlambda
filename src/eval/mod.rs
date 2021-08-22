@@ -3,6 +3,9 @@ use std::{error, fmt};
 pub mod eval;
 pub use eval::*;
 
+#[cfg(test)]
+pub mod tests;
+
 #[derive(Clone)]
 pub struct EvalError {
     msg: String,

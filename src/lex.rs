@@ -201,7 +201,7 @@ mod tests {
     fn lex2() {
         let src = r" (\fx.f(fx))(\fx.f(fx))";
         assert!(lex(src.as_bytes()).is_ok());
-        let src = "\n\t  \t\n  \n  \n\r \r  ";
+        let src = "\n\tt \\ \t\n  \n  \n\r \r  ";
         assert!(lex(src.as_bytes()).is_ok());
         let src = r"\asd \fj\asdgj s..jd.AS .DFja sdf\ .aghj";
         assert!(lex(src.as_bytes()).is_ok());
