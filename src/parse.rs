@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::error::{self, Error};
 use std::fmt;
 use std::iter::Peekable;
@@ -10,6 +11,7 @@ use crate::lex::*;
 enum Atom {
     E(Box<Expr>),
     AbstrParam(u8),
+    Definition(String),
     ParenStart,
 }
 
@@ -22,6 +24,7 @@ pub struct ParseError {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum State {
+    Start,
     InExpr,
     AbstrInit,
     AbstrParams,
@@ -29,7 +32,7 @@ enum State {
 
 type TokPeekable = Peekable<vec::IntoIter<TokenPos>>;
 
-pub fn parse(tokps: Vec<TokenPos>) -> Result<Box<Expr>, Box<dyn Error>> {
+pub fn parse(tokps: Vec<TokenPos>) -> Result<(Defs, Option<Box<Expr>>), Box<dyn Error>> {
     parse_pkbl(&mut tokps.into_iter().peekable())
 }
 
@@ -45,13 +48,19 @@ fn append(stack: &mut Vec<Atom>, expr: Box<Expr>) {
     }
 }
 
-fn parse_pkbl(pkbl: &mut TokPeekable) -> Result<Box<Expr>, Box<dyn Error>> {
+pub type Defs = HashMap<String, Def>;
+pub struct Def {
+    pub value: Box<Expr>,
+}
+
+fn parse_pkbl(pkbl: &mut TokPeekable) -> Result<(Defs, Option<Box<Expr>>), Box<dyn Error>> {
     use Atom::*;
     use Expr::*;
     use State::*;
 
-    let mut state = InExpr;
-    let mut stack: Vec<Atom> = vec![];
+    let mut state = Start;
+    let mut stack: Vec<Atom> = Vec::new();
+    let mut defs: Defs = HashMap::new();
 
     let mut gcol: u32 = 0;
     let mut grow: u32 = 0;
@@ -59,21 +68,37 @@ fn parse_pkbl(pkbl: &mut TokPeekable) -> Result<Box<Expr>, Box<dyn Error>> {
     while let Some(tokp) = pkbl.next() {
         use crate::lex::Token::*;
 
+        //dbg!(&stack);
+        //dbg!(&state);
+
         let TokenPos { tok, row, col } = tokp;
         gcol = col;
         grow = row;
         match (&state, tok) {
-            (InExpr, Char(v)) => {
+            (InExpr | Start, Char(v)) => {
                 append(&mut stack, Box::new(Variable(v)));
+                state = InExpr;
+            }
+            (Start, Capitalized(s)) => {
+                if let Some(TokenPos { tok: Equals, .. }) = pkbl.peek() {
+                    pkbl.next();
+                    stack.push(Definition(s));
+                } else {
+                    append(&mut stack, Box::new(Name(s)));
+                }
+                state = InExpr;
             }
             (InExpr, Capitalized(s)) => {
                 append(&mut stack, Box::new(Name(s)));
+                state = InExpr;
             }
-            (InExpr, OpParen) => {
+            (InExpr | Start, OpParen) => {
                 stack.push(ParenStart);
+                state = InExpr;
             }
-            (InExpr, ClParen) => {
+            (InExpr | Start, ClParen) => {
                 let mut top = match stack.pop() {
+                    Some(E(expr)) => expr,
                     Some(ParenStart) => {
                         return Err(ParseError::boxed(
                             "Attempt to close an empty expression",
@@ -88,14 +113,13 @@ fn parse_pkbl(pkbl: &mut TokPeekable) -> Result<Box<Expr>, Box<dyn Error>> {
                             col,
                         ))
                     }
-                    None => {
+                    None | Some(Definition(_)) => {
                         return Err(ParseError::boxed(
-                            "First token should not be a closing parenthesis :thinking:",
+                            "Expression starts with a closing parenthesis",
                             row,
                             col,
                         ))
                     }
-                    Some(E(expr)) => expr,
                 };
                 loop {
                     // until top atom isn't the start of a paren pair
@@ -104,7 +128,7 @@ fn parse_pkbl(pkbl: &mut TokPeekable) -> Result<Box<Expr>, Box<dyn Error>> {
                         Some(ParenStart) => break,
                         Some(AbstrParam(p)) => Box::new(Abstr(p, top)),
                         Some(E(expr)) => Box::new(Appl(expr, top)),
-                        None => {
+                        Some(Definition(_)) | None => {
                             return Err(ParseError::boxed(
                                 "Closing parenthesis has no opening parenthesis",
                                 row,
@@ -114,8 +138,9 @@ fn parse_pkbl(pkbl: &mut TokPeekable) -> Result<Box<Expr>, Box<dyn Error>> {
                     }
                 }
                 append(&mut stack, top);
+                state = InExpr;
             }
-            (InExpr, Backslash) => {
+            (InExpr | Start, Backslash) => {
                 state = AbstrInit;
             }
             (AbstrInit, Char(v)) => {
@@ -127,6 +152,48 @@ fn parse_pkbl(pkbl: &mut TokPeekable) -> Result<Box<Expr>, Box<dyn Error>> {
             }
             (AbstrParams, Dot) => {
                 state = InExpr;
+            }
+            (InExpr, Semicolon) => {
+                let mut top = match stack.pop() {
+                    Some(ParenStart) => {
+                        return Err(ParseError::boxed(
+                            "Statement ended with an open parenthesis",
+                            grow,
+                            gcol,
+                        ))
+                    }
+                    Some(AbstrParam(_)) => {
+                        // unreachable?
+                        return Err(ParseError::boxed(
+                            "Statement ended with an open abstraction",
+                            grow,
+                            gcol,
+                        ));
+                    }
+                    None | Some(Definition(_)) => {
+                        return Err(ParseError::boxed("Empty Expression", grow, gcol))
+                    }
+                    Some(E(expr)) => expr,
+                };
+                loop {
+                    // until top atom isn't the start of a paren pair
+                    // ..or nothing is left
+                    top = match stack.pop() {
+                        Some(ParenStart) => {
+                            return Err(ParseError::boxed("An unclosed parenthesis", grow, gcol))
+                        }
+                        Some(AbstrParam(p)) => Box::new(Abstr(p, top)),
+                        Some(E(expr)) => Box::new(Appl(expr, top)),
+                        Some(Definition(s)) => {
+                            assert!(stack.is_empty(), "Def should be the first element");
+                            defs.insert(s, Def { value: top });
+                            break;
+                        }
+                        None => break,
+                    }
+                }
+                stack.pop();
+                state = Start;
             }
             (s, t) => {
                 return Err(ParseError::boxed(
@@ -154,7 +221,10 @@ fn parse_pkbl(pkbl: &mut TokPeekable) -> Result<Box<Expr>, Box<dyn Error>> {
                     gcol,
                 ));
             }
-            None => return Err(ParseError::boxed("Can't parse nothing", grow, gcol)),
+            Some(Definition(_)) => return Err(ParseError::boxed("Empty definition", grow, gcol)),
+            None => {
+                return Ok((defs, None));
+            }
             Some(E(expr)) => expr,
         };
         loop {
@@ -166,10 +236,15 @@ fn parse_pkbl(pkbl: &mut TokPeekable) -> Result<Box<Expr>, Box<dyn Error>> {
                 }
                 Some(AbstrParam(p)) => Box::new(Abstr(p, top)),
                 Some(E(expr)) => Box::new(Appl(expr, top)),
+                Some(Definition(s)) => {
+                    assert!(stack.is_empty(), "Def should be the first element");
+                    defs.insert(s, Def { value: top });
+                    return Ok((defs, None));
+                }
                 None => break,
             }
         }
-        Ok(top)
+        Ok((defs, Some(top)))
     } else {
         Err(ParseError::boxed(
             "Input ended with an unfinished abstraction",
@@ -223,9 +298,13 @@ mod tests {
     use crate::lex::lex;
     use Expr::*;
 
+    fn process(s: &'static str) -> Box<Expr> {
+        lex(s.as_bytes()).and_then(parse).unwrap().1.unwrap()
+    }
+
     #[test]
     fn parse1() {
-        let p1 = lex("asd".as_bytes()).and_then(parse).unwrap();
+        let p1 = process("asd");
         assert!(matches!(
             p1,
             box Appl(
@@ -233,20 +312,20 @@ mod tests {
                 box Variable(b'd')
             )
         ));
-        let p2 = lex("(as)d".as_bytes()).and_then(parse).unwrap();
+        let p2 = process("(as)d");
         assert!(p1.alpha_eq(&p2));
-        let p3 = lex("a(sd)".as_bytes()).and_then(parse).unwrap();
+        let p3 = process("a(sd)");
         assert!(!p1.alpha_eq(&p3));
 
-        let p = lex("Name".as_bytes()).and_then(parse).unwrap();
+        let p = process("Name");
         assert!(matches!(
            p, box Name(n) if n == "Name"
         ));
-        let p = lex("1234".as_bytes()).and_then(parse).unwrap();
+        let p = process("1234");
         assert!(matches!(
            p, box Name(n) if n == "1234"
         ));
-        let p = lex("_23asdf_dfs".as_bytes()).and_then(parse).unwrap();
+        let p = process("_23asdf_dfs");
         assert!(matches!(
            p, box Name(n) if n == "_23asdf_dfs"
         ));

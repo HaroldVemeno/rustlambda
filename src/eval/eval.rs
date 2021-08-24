@@ -136,6 +136,7 @@ fn do_reduce(expr: Box<Expr>, st: &mut Stats) -> Box<Expr> {
                 //   else Reduce[AB] => (Reduce[A])(Reduce[B])
                 other => {
                     let e = do_reduce(to, st);
+                    st.size -= 1;
                     Appl(red_eb.put(other), e)
                 }
             }

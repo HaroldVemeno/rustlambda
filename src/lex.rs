@@ -13,6 +13,8 @@ pub enum Token {
     Dot,
     OpParen,
     ClParen,
+    Equals,
+    Semicolon,
 }
 use Token::*;
 
@@ -80,6 +82,16 @@ fn lex_dyn(input: Box<dyn Read>) -> Result<Vec<TokenPos>, Box<dyn Error>> {
                 row,
             }),
             b'.' => vec.push(TokenPos { tok: Dot, col, row }),
+            b'=' => vec.push(TokenPos {
+                tok: Equals,
+                col,
+                row,
+            }),
+            b';' => vec.push(TokenPos {
+                tok: Semicolon,
+                col,
+                row,
+            }),
             b'a'..=b'z' => vec.push(TokenPos {
                 tok: Char(c),
                 col,
@@ -124,6 +136,8 @@ impl fmt::Display for Token {
             OpParen => write!(f, "("),
             ClParen => write!(f, ")"),
             Dot => write!(f, "."),
+            Equals => write!(f, "="),
+            Semicolon => write!(f, ";"),
         }
     }
 }
@@ -207,7 +221,7 @@ mod tests {
         assert!(lex(src.as_bytes()).is_ok());
         let src = r"asdl\.\(()\)asfd fda \. a.\sd)()()l agsAS DF ((  ))";
         assert!(lex(src.as_bytes()).is_ok());
-        let src = r" ahgsdfiphgp ;jhl3((((((((40218u fgSDFG as\\..\. \a\. ";
+        let src = r" ahgsdfiphgp *jhl3((((((((40218u fgSDFG as\\..\. \a\. ";
         assert!(lex(src.as_bytes()).is_err());
         let src = r" ahgsdfiphgp jhl3((((((((40218u fgSDFG as\\./.\. \a\. ";
         assert!(lex(src.as_bytes()).is_err());

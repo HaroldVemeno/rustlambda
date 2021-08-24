@@ -11,6 +11,7 @@ pub enum Expr {
     Abstr(u8, Box<Expr>),
     Appl(Box<Expr>, Box<Expr>),
 }
+
 impl Expr {
     pub fn alpha_eq(&self, other: &Self) -> bool {
         use Expr::*;
@@ -65,6 +66,7 @@ impl Expr {
                 },
                 Abstr(_, body) => body,
                 Appl(a, b) => {
+                    ret -= 1;
                     stack.push(a);
                     b
                 }
@@ -212,9 +214,13 @@ mod tests {
 
     use super::Expr::{self, *};
 
+    fn process(s: &'static str) -> Box<Expr> {
+        lex(s.as_bytes()).and_then(parse).unwrap().1.unwrap()
+    }
+
     #[test]
     fn unbounds_in_0() -> Result<(), Box<dyn Error>> {
-        let mut set = parse(lex(r#"\afc.fpad(\qc.cag)"#.as_bytes())?)?.unbounds();
+        let mut set = process(r#"\afc.fpad(\qc.cag)"#).unbounds();
         assert_eq!(set.len(), 3);
         assert!(set.remove(&b'p') && set.remove(&b'd') && set.remove(&b'g'));
         assert!(set.is_empty());
@@ -223,40 +229,42 @@ mod tests {
 
     #[test]
     fn alpha_eq_0() -> Result<(), Box<dyn Error>> {
-        let e1 = parse(lex(r#"\fad.da(lf)"#.as_bytes())?)?;
-        let e2 = parse(lex(r#"\okg.gk(lo)"#.as_bytes())?)?;
+        let e1 = process(r#"\fad.da(lf)"#);
+        let e2 = process(r#"\okg.gk(lo)"#);
         assert!(e1.alpha_eq(&e2));
         Ok(())
     }
 
     #[test]
     fn alpha_eq_1() -> Result<(), Box<dyn Error>> {
-        let e1 = parse(lex(r#"\abc.ba(\b.cb)(\ac.ba)(\ap.caa)"#.as_bytes())?)?;
-        let e2 = parse(lex(r#"\bap.ab(\a.ca)(\bc.ab)(\vc.pvv)"#.as_bytes())?)?;
+        let e1 = process(r#"\abc.ba(\b.cb)(\ac.ba)(\ap.caa)"#);
+        let e2 = process(r#"\bap.ab(\a.ca)(\bc.ab)(\vc.pvv)"#);
         assert!(e1.alpha_eq(&e2));
         Ok(())
     }
 
     #[test]
     fn alpha_eq_2() -> Result<(), Box<dyn Error>> {
-        let e1 = parse(lex(r#"\abg.ba(\b.cb)(\ac.ba)(\ap.caa)"#.as_bytes())?)?;
-        let e2 = parse(lex(r#"\bap.ab(\a.ca)(\bc.ab)(\vc.pvv)"#.as_bytes())?)?;
+        let e1 = process(r#"\abg.ba(\b.cb)(\ac.ba)(\ap.caa)"#);
+        let e2 = process(r#"\bap.ab(\a.ca)(\bc.ab)(\vc.pvv)"#);
         assert!(!e1.alpha_eq(&e2));
         Ok(())
     }
 
     #[test]
     fn alpha_eq_3() -> Result<(), Box<dyn Error>> {
-        let e1 = parse(lex(r#"\abc.ba(\b.cb)(\ac.ab)(\ap.caa)"#.as_bytes())?)?;
-        let e2 = parse(lex(r#"\bap.ab(\a.ca)(\bc.ab)(\vc.pvv)"#.as_bytes())?)?;
+        let e1 = process(r#"\abc.ba(\b.cb)(\ac.ab)(\ap.caa)"#);
+        let e2 = process(r#"\bap.ab(\a.ca)(\bc.ab)(\vc.pvv)"#);
+        println!("{}",&e1);
+        println!("{}",&e2);
         assert!(!e1.alpha_eq(&e2));
         Ok(())
     }
 
     #[test]
     fn alpha_eq_4() -> Result<(), Box<dyn Error>> {
-        let e1 = parse(lex(r#"\abc.ba(\b.cb)(\ac.ba)(\ap.caa)"#.as_bytes())?)?;
-        let e2 = parse(lex(r#"\bap.ab(\a.ca)(\bc.ab)(\va.pvv)"#.as_bytes())?)?;
+        let e1 = process(r#"\abc.ba(\b.cb)(\ac.ba)(\ap.caa)"#);
+        let e2 = process(r#"\bap.ab(\a.ca)(\bc.ab)(\va.pvv)"#);
         assert!(e1.alpha_eq(&e2));
         Ok(())
     }
