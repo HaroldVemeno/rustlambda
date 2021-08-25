@@ -1,19 +1,19 @@
 * rustlambda
 A lambda calculus parser and evaluator written in rust
 ** Goals
-- [ ] tests pls
-- [ ] linear optimnization
+- [-] linear optimnization
 - [ ] lazier strategy? call by need?
-- [ ] do names already
+- [ ] tests pls
 - [ ] unicode
-|---------------------+----------------------+-------------+--------|
-| Strategy            | Speed                | Lines       | Fails? |
-|---------------------+----------------------+-------------+--------|
-| Applicative order   | Good                 | not bad     | yes    |
-| Normal order        | Worse                | not bad     | no     |
-| Call by need - lazy | Better               | a bit worse | no     |
-| Interaction nets    | fast as fuck boiiiii | yikes       | yees   |
-|---------------------+----------------------+-------------+--------|
+|---------------------+--------------------+-------------+--------|
+| Strategy            | Speed              | Lines       | Fails? |
+|---------------------+--------------------+-------------+--------|
+| Applicative order   | Good               | not bad     | yes    |
+| Normal order        | Worse              | not bad     | no     |
+| Call by need - lazy | Better             | a bit worse | no     |
+| Interaction nets    | weeeeeeeeeeeeeeeee | yikes       | yees   |
+|---------------------+--------------------+-------------+--------|
+- [X] do names already
 - [X] stats
 - [X] fix parsing
 - [X] is empty_box worth it?
