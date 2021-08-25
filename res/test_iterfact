@@ -1,0 +1,8 @@
+P = \abf.fab;
+Mul = \nmf.n(mf);
+Succ = \nfx.f(nfx);
+Fact = \n.n
+     (\a.a(\ab.P(Mul a b)(Succ b)))
+     (P 1 1)
+     (\ab.a);
+Fact 7

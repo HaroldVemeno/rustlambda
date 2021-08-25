@@ -12,6 +12,11 @@ pub enum Expr {
     Appl(Box<Expr>, Box<Expr>),
 }
 
+pub type Defs = HashMap<String, Def>;
+pub struct Def {
+    pub value: Box<Expr>,
+}
+
 impl Expr {
     pub fn alpha_eq(&self, other: &Self) -> bool {
         use Expr::*;
@@ -255,8 +260,8 @@ mod tests {
     fn alpha_eq_3() -> Result<(), Box<dyn Error>> {
         let e1 = process(r#"\abc.ba(\b.cb)(\ac.ab)(\ap.caa)"#);
         let e2 = process(r#"\bap.ab(\a.ca)(\bc.ab)(\vc.pvv)"#);
-        println!("{}",&e1);
-        println!("{}",&e2);
+        println!("{}", &e1);
+        println!("{}", &e2);
         assert!(!e1.alpha_eq(&e2));
         Ok(())
     }

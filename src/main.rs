@@ -17,13 +17,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     //eprintln!("{:?}", lexed);
 
     eprintln!("Parsing\n");
-    let parsed = parse::parse(lexed)?.1.ok_or("No main body to evaluate")?;
+    let parsed = parse::parse(lexed)?;
+    let expr = parsed.1.ok_or("No main body to evaluate")?;
+    let defs = parsed.0;
     //eprintln!("{:#}\n", parsed);
     //eprintln!("{:?}\n", parsed);
-    eprintln!("{}\n", parsed);
+    eprintln!("{}\n", expr);
 
     eprintln!("Evaluating\n");
-    let evaluated = eval::reduce(parsed, true)?;
+    let evaluated = eval::reduce(expr, &defs, true)?;
     println!("{}\n", evaluated);
     if let Some(num) = evaluated.try_unchurch_num() {
         eprintln!("Church num!: {}", num)

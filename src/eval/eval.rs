@@ -5,7 +5,7 @@ use std::fmt;
 use std::panic;
 
 use super::EvalError;
-use crate::expr::Expr;
+use crate::expr::{Def, Defs, Expr};
 
 #[derive(Debug, Default, Clone, Copy)]
 struct Stats {
@@ -18,28 +18,11 @@ struct Stats {
     max_size: u32,
 }
 
-impl fmt::Display for Stats {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let Stats {
-            betas,
-            etas,
-            max_depth,
-            max_size,
-            ..
-        } = *self;
-        writeln!(
-            f,
-            r#"Stats:
-	Beta reductions: {}
-	Eta reductions: {}
-	Maximum depth: {}
-	Maximum size: {}"#,
-            betas, etas, max_depth, max_size
-        )
-    }
-}
-
-pub fn reduce(mut expr: Box<Expr>, print_info: bool) -> Result<Box<Expr>, Box<dyn error::Error>> {
+pub fn reduce(
+    mut expr: Box<Expr>,
+    defs: &Defs,
+    print_info: bool,
+) -> Result<Box<Expr>, Box<dyn error::Error>> {
     let max_iterations = 10000000;
     let max_size = 10000000;
 
@@ -47,7 +30,7 @@ pub fn reduce(mut expr: Box<Expr>, print_info: bool) -> Result<Box<Expr>, Box<dy
     for i in 1..=max_iterations {
         stats.reduced = false;
         stats.size = 0;
-        expr = do_reduce(expr, &mut stats);
+        expr = do_reduce(expr, defs, &mut stats);
         if stats.size > stats.max_size {
             stats.max_size = stats.size
         }
@@ -75,7 +58,7 @@ pub fn reduce(mut expr: Box<Expr>, print_info: bool) -> Result<Box<Expr>, Box<dy
     Ok(expr)
 }
 
-fn do_reduce(expr: Box<Expr>, st: &mut Stats) -> Box<Expr> {
+fn do_reduce(expr: Box<Expr>, defs: &Defs, st: &mut Stats) -> Box<Expr> {
     st.depth += 1;
     st.size += 1;
     if st.depth > st.max_depth {
@@ -89,7 +72,19 @@ fn do_reduce(expr: Box<Expr>, st: &mut Stats) -> Box<Expr> {
     let result = match ex {
         // Irreducable
         Variable(_) => ex,
-        Name(_) => ex, // TODO: name binding and resolution
+        Name(ref s) => {
+            if let Some(Def { value }) = defs.get(s) {
+                st.reduced = true;
+                st.size -= 1;
+                *value.clone()
+            } else if let Ok(n) = s.parse() {
+                st.reduced = true;
+                st.size -= 1;
+                *Expr::church_num(n)
+            } else {
+                ex
+            }
+        }
 
         // Eta reduction:
         //   Reduce(\a.Ea)
@@ -100,11 +95,11 @@ fn do_reduce(expr: Box<Expr>, st: &mut Stats) -> Box<Expr> {
         {
             st.etas += 1;
             st.reduced = true;
-            *do_reduce(rest, st)
+            *do_reduce(rest, defs, st)
         }
         //   Reduce[\a.E]  =>  \a.Reduce[E]
         Abstr(var, body) => {
-            let e = do_reduce(body, st);
+            let e = do_reduce(body, defs, st);
             Abstr(var, e)
         }
 
@@ -120,7 +115,7 @@ fn do_reduce(expr: Box<Expr>, st: &mut Stats) -> Box<Expr> {
         //   Reduce[AB]
         Appl(a, to) => {
             let sz = st.size;
-            let red_box = do_reduce(a, st);
+            let red_box = do_reduce(a, defs, st);
             let (reduced_a, red_eb) = EmptyBox::take(red_box);
             match reduced_a {
                 //   if Reduce[A] => \x.C
@@ -135,7 +130,7 @@ fn do_reduce(expr: Box<Expr>, st: &mut Stats) -> Box<Expr> {
                 }
                 //   else Reduce[AB] => (Reduce[A])(Reduce[B])
                 other => {
-                    let e = do_reduce(to, st);
+                    let e = do_reduce(to, defs, st);
                     st.size -= 1;
                     Appl(red_eb.put(other), e)
                 }
@@ -229,4 +224,25 @@ fn replace_var(expr: Box<Expr>, from: u8, to: u8) -> Box<Expr> {
             }
         }
     })
+}
+
+impl fmt::Display for Stats {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Stats {
+            betas,
+            etas,
+            max_depth,
+            max_size,
+            ..
+        } = *self;
+        writeln!(
+            f,
+            r#"Stats:
+	Beta reductions: {}
+	Eta reductions: {}
+	Maximum depth: {}
+	Maximum size: {}"#,
+            betas, etas, max_depth, max_size
+        )
+    }
 }

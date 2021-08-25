@@ -4,7 +4,7 @@ use std::fmt;
 use std::iter::Peekable;
 use std::vec;
 
-use crate::expr::Expr;
+use crate::expr::{Def, Defs, Expr};
 use crate::lex::*;
 
 #[derive(Clone, Debug)]
@@ -48,11 +48,6 @@ fn append(stack: &mut Vec<Atom>, expr: Box<Expr>) {
     }
 }
 
-pub type Defs = HashMap<String, Def>;
-pub struct Def {
-    pub value: Box<Expr>,
-}
-
 fn parse_pkbl(pkbl: &mut TokPeekable) -> Result<(Defs, Option<Box<Expr>>), Box<dyn Error>> {
     use Atom::*;
     use Expr::*;
@@ -68,7 +63,7 @@ fn parse_pkbl(pkbl: &mut TokPeekable) -> Result<(Defs, Option<Box<Expr>>), Box<d
     while let Some(tokp) = pkbl.next() {
         use crate::lex::Token::*;
 
-        //dbg!(&stack);
+        // dbg!(&stack);
         //dbg!(&state);
 
         let TokenPos { tok, row, col } = tokp;
