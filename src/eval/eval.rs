@@ -2,6 +2,7 @@ use empty_box::EmptyBox;
 use std::collections::HashSet;
 use std::error;
 use std::fmt;
+use std::mem;
 use std::panic;
 
 use super::EvalError;
@@ -145,6 +146,12 @@ fn beta_reduce(expr: Box<Expr>, from: u8, to: Box<Expr>) -> Box<Expr> {
     let mut unbounds_to = to.unbounds();
     unbounds_to.insert(from);
 
+    enum Linear {
+        Move(Box<Expr>),
+        Clone(*const Expr),
+    }
+    use Linear::*;
+
     //println!("beta_reduce: {}", expr);
     //println!("  from: {}", ascii::escape_default(from).to_string());
     //println!("  to  : {}", to);
@@ -155,36 +162,41 @@ fn beta_reduce(expr: Box<Expr>, from: u8, to: Box<Expr>) -> Box<Expr> {
     //}
     //println!();
 
-    fn beta(
-        expr: Box<Expr>,
-        rest @ (from, to, to_unb): &(u8, Box<Expr>, HashSet<u8>),
-    ) -> Box<Expr> {
+    fn beta(expr: Box<Expr>, from: u8, to: &mut Linear, to_unb: &HashSet<u8>) -> Box<Expr> {
         use Expr::*;
         let (ex, eb) = EmptyBox::take(expr);
-        eb.put(match ex {
-            Name(_) => ex,
-            Appl(a, b) => Appl(beta(a, rest), beta(b, rest)),
-            Abstr(v, b) => {
-                if v == *from {
-                    Abstr(v, b)
-                } else if to_unb.contains(&v) {
-                    let (v, e) = alpha(v, b, to_unb);
-                    Abstr(v, beta(e, rest))
-                } else {
-                    Abstr(v, beta(b, rest))
-                }
-            }
+        match ex {
+            Name(_) => eb.put(ex),
+            Appl(a, b) => eb.put(Appl(beta(a, from, to, to_unb), beta(b, from, to, to_unb))),
+            Abstr(v, b) => eb.put(if v == from {
+                Abstr(v, b)
+            } else if to_unb.contains(&v) {
+                let (v, e) = alpha(v, b, to_unb);
+                Abstr(v, beta(e, from, to, to_unb))
+            } else {
+                Abstr(v, beta(b, from, to, to_unb))
+            }),
             Variable(v) => {
-                if v == *from {
-                    *to.clone()
+                if v == from {
+                    match to {
+                        Clone(cto) => unsafe { eb.put((**cto).clone()) },
+                        Move(_) => {
+                            let oto = mem::replace(to, Clone(0 as *const Expr));
+                            if let Move(a) = oto {
+                                *to = Clone(a.as_ref() as *const Expr);
+                                a
+                            } else {unreachable!()}
+                        }
+                    }
                 } else {
-                    ex
+                    eb.put(ex)
                 }
             }
-        })
+        }
+
     }
 
-    beta(expr, &(from, to, unbounds_to))
+    beta(expr, from, &mut Move(to), &unbounds_to)
 }
 
 fn alpha_next(taken: &HashSet<u8>) -> u8 {
