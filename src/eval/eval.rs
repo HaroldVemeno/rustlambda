@@ -4,6 +4,7 @@ use std::error;
 use std::fmt;
 use std::mem;
 use std::panic;
+use std::ptr;
 
 use super::EvalError;
 use crate::expr::{Def, Defs, Expr};
@@ -179,11 +180,14 @@ fn beta_reduce(expr: Box<Expr>, from: u8, to: Box<Expr>) -> Box<Expr> {
             Variable(v) => {
                 if v == from {
                     match to {
+                        // Safety:
+                        // Cto is never null. It always gets assigned a valid reference
+                        // It doesn't get invalidated, because everything is mutated once only
                         Clone(cto) => unsafe { eb.put((**cto).clone()) },
                         Move(_) => {
-                            let oto = mem::replace(to, Clone(0 as *const Expr));
+                            let oto = mem::replace(to, Clone(ptr::null()));
                             if let Move(a) = oto {
-                                *to = Clone(a.as_ref() as *const Expr);
+                                *to = Clone(a.as_ref() as *const Expr); // Here
                                 a
                             } else {unreachable!()}
                         }
