@@ -1,10 +1,16 @@
-(\f.(\a.aa)(\m.f(mm)))
-(\rn.
-    n(\lab.b)(\ab.a)
-    (\fx.fx)
-    (\f.
-        (r (\gy.n(\wh.h(wg))(\u.y)(\u.u)))
-        (nf)
-    )
-)
-(\fx.f(f(f(f(fx)))))
+I = \a.a;
+If = I;
+Y = \f.(\a.aa)(\m.f(mm));
+Pred = \nfx.n(\wh.h(wf)) (Const x) I;
+Mul = \nmf.n(mf);
+True = \tf.t;
+False = \tf.f;
+Const = \ab.a;
+Is0 = \n.n (Const False) True;
+Fact = Y (\rn.
+        If (Is0 n)
+        1
+        (Mul (r (Pred n)) n)
+);
+
+Fact 5

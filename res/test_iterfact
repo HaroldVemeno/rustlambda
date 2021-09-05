@@ -1,8 +1,10 @@
 P = \abf.fab;
+Fst = \p.p\ab.a;
+Snd = \p.p\ab.b;
 Mul = \nmf.n(mf);
 Succ = \nfx.f(nfx);
-Fact = \n.n
-     (\a.a(\ab.P(Mul a b)(Succ b)))
-     (P 1 1)
-     (\ab.a);
+Fact = \n.Fst (
+    n (\p. P (Mul (Fst p) (Snd p))
+             (Succ (Snd p)))
+      (P 1 1));
 Fact 7
