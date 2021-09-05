@@ -1,0 +1,20 @@
+I = \a.a;
+If = I;
+T = \tf.t;
+F = \tf.f;
+Or = \ab. a T b;
+Succ = \nfx.f(nfx);
+Wrap = \xf.fx;
+Comp = \fgx.f(gx);
+Y = \f.(\a.aa)(\m.f(mm));
+Pred = \nfx.n(\wh.h(wf)) (Const x) I;
+Pred' = \n.n(\w.Wrap (w Succ)) (Const 0) I;
+Mul = \nmf.n(mf);
+True = \tf.t;
+False = \tf.f;
+Const = \ab.a;
+Is0 = \n.n (Const False) True;
+Sub = \mn.m Pred n;
+BadSub = \mnfx. m (\w.w Wrap) (n (\w.w (Comp Wrap f)) (m Const x)) I;
+RecSub = Y (\rmn. Or (Is0 m) (Is0 m) n (r (Pred m) (Pred n)));
+Sub 50 102
