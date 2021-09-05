@@ -97,14 +97,16 @@ fn lex_dyn(input: Box<dyn Read>) -> Result<Vec<TokenPos>, Box<dyn Error>> {
                 col,
                 row,
             }),
-            b'A'..=b'Z' | b'0'..=b'9' | b'_' => {
+            b'A'..=b'Z' | b'0'..=b'9' | b'_' | b'\'' => {
                 let mut s = (c as char).to_string();
                 let scol = col;
                 let srow = row;
 
                 while let Some(Ok(c)) = p.peek() {
                     match c {
-                        b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'_' => s.push((*c).into()),
+                        b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'_' | b'\'' => {
+                            s.push((*c).into())
+                        }
                         _ => break,
                     }
                     p.next();
