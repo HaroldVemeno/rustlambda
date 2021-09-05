@@ -17,6 +17,48 @@ pub struct Def {
     pub value: Box<Expr>,
 }
 
+#[macro_use]
+pub mod expr_aliases {
+    use super::*;
+
+    pub fn var(v: u8) -> Box<Expr> {
+        Box::new(Expr::Variable(v))
+    }
+    pub fn name(s: impl Into<String>) -> Box<Expr> {
+        Box::new(Expr::Name(s.into()))
+    }
+    pub fn abstr(p: u8, e: Box<Expr>) -> Box<Expr> {
+        Box::new(Expr::Abstr(p, e))
+    }
+    pub fn appl(f: Box<Expr>, x: Box<Expr>) -> Box<Expr> {
+        Box::new(Expr::Appl(f, x))
+    }
+
+    pub fn church(n: u32) -> Box<Expr> {
+        Expr::church_num(n)
+    }
+
+    #[macro_export]
+    macro_rules! vappl {
+        ($f:expr, $x:expr) => {
+            appl($f, $x)
+        };
+        ($f:expr, $x:expr, $rest:tt) => {
+            vappl!(appl($f, $x), $rest)
+        };
+    }
+
+    #[macro_export]
+    macro_rules! vabstr {
+        ($x:expr) => {
+            $x
+        };
+        ($p:expr, $rest:tt) => {
+            abstr($p, vabstr!($rest))
+        };
+    }
+}
+
 impl Expr {
     pub fn alpha_eq(&self, other: &Self) -> bool {
         use Expr::*;
@@ -214,14 +256,11 @@ impl fmt::Display for Expr {
 
 #[cfg(test)]
 mod tests {
-    use crate::{lex::lex, parse::parse};
+    use super::expr_aliases::*;
+    use super::*;
+    use crate::test::*;
     use std::error::Error;
-
-    use super::Expr::{self, *};
-
-    fn process(s: &'static str) -> Box<Expr> {
-        lex(s.as_bytes()).and_then(parse).unwrap().1.unwrap()
-    }
+    use Expr::*;
 
     #[test]
     fn unbounds_in_0() -> Result<(), Box<dyn Error>> {
@@ -277,23 +316,14 @@ mod tests {
     #[test]
     fn church_nums_0() {
         let zero = Expr::church_num(0);
-        assert!(zero.alpha_eq(&Abstr(
-            b'd',
-            Box::new(Abstr(b'r', Box::new(Variable(b'r'))))
-        )));
+        assert!(zero.alpha_eq(&Abstr(b'd', abstr(b'r', var(b'r')))));
         assert_eq!(zero.try_unchurch_num(), Some(0));
     }
 
     #[test]
     fn church_nums_1() {
         let one = Expr::church_num(1);
-        assert!(one.alpha_eq(&Abstr(
-            b'd',
-            Box::new(Abstr(
-                b'r',
-                Box::new(Appl(Box::new(Variable(b'd')), Box::new(Variable(b'r'))))
-            ))
-        )));
+        assert!(one.alpha_eq(&Abstr(b'd', abstr(b'r', appl(var(b'd'), var(b'r'))))));
         assert_eq!(one.try_unchurch_num(), Some(1));
     }
 

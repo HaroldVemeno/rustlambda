@@ -290,12 +290,8 @@ impl<A> From<ParseError> for Result<A, ParseError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lex::lex;
+    use crate::test::*;
     use Expr::*;
-
-    fn process(s: &'static str) -> Box<Expr> {
-        lex(s.as_bytes()).and_then(parse).unwrap().1.unwrap()
-    }
 
     #[test]
     fn parse1() {
