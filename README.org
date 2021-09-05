@@ -1,10 +1,12 @@
 * rustlambda
 A lambda calculus parser and evaluator written in rust
 ** Goals
-- [-] linear optimnization
 - [ ] lazier strategy? call by need?
+- [ ] not reducing from the root every time
 - [ ] tests pls
 - [ ] unicode
+- [ ] a functioning repl
+- [ ] semicolons -> newlines and indentation based definitions
 |---------------------+--------------------+-------------+--------|
 | Strategy            | Speed              | Lines       | Fails? |
 |---------------------+--------------------+-------------+--------|
@@ -13,6 +15,7 @@ A lambda calculus parser and evaluator written in rust
 | Call by need - lazy | Better             | a bit worse | no     |
 | Interaction nets    | weeeeeeeeeeeeeeeee | yikes       | yees   |
 |---------------------+--------------------+-------------+--------|
+- [X] linear optimnization
 - [X] do names already
 - [X] stats
 - [X] fix parsing
