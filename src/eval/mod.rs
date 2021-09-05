@@ -1,10 +1,12 @@
 use std::{error, fmt};
 
 pub mod eval;
-pub use eval::*;
+pub mod util;
+
+pub use eval::reduce;
 
 #[cfg(test)]
-pub mod tests;
+mod tests;
 
 #[derive(Clone)]
 pub struct EvalError {
