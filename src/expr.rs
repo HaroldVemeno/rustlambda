@@ -43,8 +43,8 @@ pub mod expr_aliases {
         ($f:expr, $x:expr) => {
             appl($f, $x)
         };
-        ($f:expr, $x:expr, $rest:tt) => {
-            vappl!(appl($f, $x), $rest)
+        ($f:expr, $x:expr, $($rest:expr),+) => {
+            vappl!(appl($f, $x), $($rest),+)
         };
     }
 
@@ -53,8 +53,8 @@ pub mod expr_aliases {
         ($x:expr) => {
             $x
         };
-        ($p:expr, $rest:tt) => {
-            abstr($p, vabstr!($rest))
+        ($p:expr, $($rest:expr),+) => {
+            abstr($p, vabstr!($($rest),+))
         };
     }
 }
