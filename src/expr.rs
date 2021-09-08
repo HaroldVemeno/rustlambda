@@ -46,6 +46,9 @@ pub mod expr_aliases {
         ($f:expr, $x:expr, $($rest:expr),+) => {
             vappl!(appl($f, $x), $($rest),+)
         };
+        ($f:expr, $x:expr, $($rest:expr,)+) => {
+            vappl!(appl($f, $x), $($rest),+)
+        };
     }
 
     #[macro_export]
@@ -54,6 +57,9 @@ pub mod expr_aliases {
             $x
         };
         ($p:expr, $($rest:expr),+) => {
+            abstr($p, vabstr!($($rest),+))
+        };
+        ($p:expr, $($rest:expr,)+) => {
             abstr($p, vabstr!($($rest),+))
         };
     }
