@@ -16,5 +16,5 @@ Const = \ab.a;
 Is0 = \n.n (Const False) True;
 Sub = \mn.m Pred n;
 BadSub = \mnfx. m (\w.w Wrap) (n (\w.w (Comp Wrap f)) (m Const x)) I;
-RecSub = Y (\rmn. Or (Is0 m) (Is0 m) n (r (Pred m) (Pred n)));
+RecSub = Y (\rmn. Or (Is0 m) (Is0 n) n (r (Pred m) (Pred n)));
 Sub 50 102
