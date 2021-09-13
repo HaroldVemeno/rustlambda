@@ -5,7 +5,7 @@ A lambda calculus parser and evaluator written in rust
 - [ ] not reducing from the root every time
 - [ ] tests pls
 - [ ] unicode
-- [ ] a functioning repl
+- [-] a functioning repl
 - [ ] semicolons -> newlines and indentation based definitions
 |---------------------+--------------------+-------------+--------|
 | Strategy            | Speed              | Lines       | Fails? |
