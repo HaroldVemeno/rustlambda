@@ -6,8 +6,7 @@ use crate::test::*;
 use crate::{vabstr, vappl};
 
 fn red(expr: Box<Expr>) -> Box<Expr> {
-    reduce(expr, &HashMap::new(), false)
-        .unwrap()
+    reduce(expr, &HashMap::new(), false).unwrap()
 }
 
 #[test]
@@ -22,6 +21,7 @@ fn church_pow() {
 
 #[test]
 fn church_add() {
+    // add = \nmfx.mf(nfx)
     let add = vabstr!(
         b'n',
         b'm',
@@ -43,6 +43,7 @@ fn church_add() {
 
 #[test]
 fn church_mul() {
+    // mul = \nmfx.m(nf)x
     let mul = vabstr!(
         b'n',
         b'm',
@@ -60,17 +61,12 @@ fn church_mul() {
 
 #[test]
 fn stuff() {
-    let expr = red(abstr(b'c', appl(vabstr!(
-        b'b',
-        b'a',
-    appl(
-        var(b'c'),
-        var(b'a')
-    )
-    ), var(b'a'))));
+    //  Test against bad alpha reduction
+    //  \c.(\ba.ca)a
+    let expr = red(abstr(
+        b'c',
+        appl(vabstr!(b'b', b'a', appl(var(b'c'), var(b'a'))), var(b'a')),
+    ));
     eprintln!("{:?}", expr);
-    assert!(expr.alpha_eq(&red(
-        vabstr!(
-        b'c', b'a', appl(var(b'c'), var(b'a')))
-    )));
+    assert!(expr.alpha_eq(&red(vabstr!(b'c', b'a', appl(var(b'c'), var(b'a'))))));
 }
