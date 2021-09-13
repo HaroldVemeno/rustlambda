@@ -5,7 +5,7 @@ use criterion::*;
 #[allow(unused_imports)]
 use rustlambda::{
     eval,
-    expr::{self, Defs, Expr, expr_aliases::*},
+    expr::{self, expr_aliases::*, Defs, Expr},
     lex, parse,
 };
 
@@ -46,7 +46,7 @@ pub fn bench_rec_factorial(c: &mut Criterion) {
         let defs = parsed.0;
         for i in 1..=5 {
             gr.bench_with_input(BenchmarkId::from_parameter(i), &i, |b, &i| {
-                let expr = appl(name("Fact"), church(i));
+                let expr = appl(name("Fact"), chnum(i));
                 b.iter(|| eval::reduce(expr.clone(), &defs, false))
             });
         }
@@ -64,7 +64,7 @@ pub fn bench_rec_factorial(c: &mut Criterion) {
         let defs = parsed.0;
         for i in 1..=5 {
             gr.bench_with_input(BenchmarkId::from_parameter(i), &i, |b, &i| {
-                let expr = appl(name("Fact"), church(i));
+                let expr = appl(name("Fact"), chnum(i));
                 b.iter(|| eval::reduce(expr.clone(), &defs, false))
             });
         }

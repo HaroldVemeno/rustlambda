@@ -34,7 +34,7 @@ pub mod expr_aliases {
         Box::new(Expr::Appl(f, x))
     }
 
-    pub fn church(n: u32) -> Box<Expr> {
+    pub fn chnum(n: u32) -> Box<Expr> {
         Expr::church_num(n)
     }
 

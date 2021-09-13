@@ -11,7 +11,7 @@ fn red(expr: Box<Expr>) -> Box<Expr> {
 
 #[test]
 fn church_pow() {
-    let expr = appl(church(4), church(3));
+    let expr = appl(chnum(4), chnum(3));
     let reduced = reduce(expr, &HashMap::new(), false)
         .unwrap()
         .try_unchurch_num()
@@ -33,7 +33,7 @@ fn church_add() {
             vappl!(var(b'n'), var(b'f'), var(b'x'))
         )
     );
-    let expr = vappl!(add, church(6), church(9));
+    let expr = vappl!(add, chnum(6), chnum(9));
     let reduced = reduce(expr, &HashMap::new(), false)
         .unwrap()
         .try_unchurch_num()
@@ -51,7 +51,7 @@ fn church_mul() {
         b'x',
         vappl!(var(b'm'), appl(var(b'n'), var(b'f')), var(b'x'))
     );
-    let expr = vappl!(mul, church(6), church(9));
+    let expr = vappl!(mul, chnum(6), chnum(9));
     let reduced = reduce(expr, &HashMap::new(), false)
         .unwrap()
         .try_unchurch_num()
