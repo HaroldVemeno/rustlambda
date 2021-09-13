@@ -7,7 +7,7 @@ use super::EvalError;
 use crate::expr::{Def, Defs, Expr};
 
 #[derive(Debug, Default, Clone, Copy)]
-struct Stats {
+pub struct Stats {
     reduced: bool,
     betas: u32,
     etas: u32,
@@ -20,8 +20,7 @@ struct Stats {
 pub fn reduce(
     mut expr: Box<Expr>,
     defs: &Defs,
-    print_info: bool,
-) -> Result<Box<Expr>, Box<dyn error::Error>> {
+) -> (Result<Box<Expr>, Box<dyn error::Error>>, Stats) {
     let max_iterations = 10000000;
     let max_size = 10000000;
 
@@ -40,21 +39,24 @@ pub fn reduce(
         //let expr_size = expr.size();
         //debug_assert_eq!(expr_size, stats.size);
         if stats.size > max_size {
-            return Err(EvalError::boxed(format!(
-                "Size outgrew maximum size: {} out of {}",
-                stats.size, max_size
-            )));
+            return (
+                Err(EvalError::boxed(format!(
+                    "Size outgrew maximum size: {} out of {}",
+                    stats.size, max_size
+                ))),
+                stats,
+            );
         } else if i == max_iterations {
-            return Err(EvalError::boxed(format!(
-                "Iteration limit reached: {}",
-                max_iterations
-            )));
+            return (
+                Err(EvalError::boxed(format!(
+                    "Iteration limit reached: {}",
+                    max_iterations
+                ))),
+                stats,
+            );
         }
     }
-    if print_info {
-        eprintln! {"{}", stats}
-    }
-    Ok(expr)
+    (Ok(expr), stats)
 }
 
 fn do_reduce(expr: Box<Expr>, defs: &Defs, st: &mut Stats) -> Box<Expr> {
@@ -152,10 +154,10 @@ impl fmt::Display for Stats {
         writeln!(
             f,
             r#"Stats:
-	Beta reductions: {}
-	Eta reductions: {}
-	Maximum depth: {}
-	Maximum size: {}"#,
+  Beta reductions: {}
+  Eta reductions: {}
+  Maximum depth: {}
+  Maximum size: {}"#,
             betas, etas, max_depth, max_size
         )
     }

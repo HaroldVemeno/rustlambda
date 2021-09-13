@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 empty-box = "~0.1"
+structopt = "~0.3"
 
 [dev-dependencies]
 criterion = "~0.3"
