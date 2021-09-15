@@ -28,7 +28,7 @@ pub fn bench_stuff(c: &mut Criterion) {
     let expr = parsed.1.unwrap();
     let defs = parsed.0;
     gr.bench_function("eval stuff", |b| {
-        b.iter(|| eval::reduce(expr.clone(), &defs, false))
+        b.iter(|| eval::reduce(expr.clone(), &defs))
     });
 }
 
@@ -47,7 +47,7 @@ pub fn bench_rec_factorial(c: &mut Criterion) {
         for i in 1..=5 {
             gr.bench_with_input(BenchmarkId::from_parameter(i), &i, |b, &i| {
                 let expr = appl(name("Fact"), chnum(i));
-                b.iter(|| eval::reduce(expr.clone(), &defs, false))
+                b.iter(|| eval::reduce(expr.clone(), &defs))
             });
         }
     }
@@ -65,7 +65,7 @@ pub fn bench_rec_factorial(c: &mut Criterion) {
         for i in 1..=5 {
             gr.bench_with_input(BenchmarkId::from_parameter(i), &i, |b, &i| {
                 let expr = appl(name("Fact"), chnum(i));
-                b.iter(|| eval::reduce(expr.clone(), &defs, false))
+                b.iter(|| eval::reduce(expr.clone(), &defs))
             });
         }
     }
@@ -78,7 +78,7 @@ pub fn bench_exp(c: &mut Criterion) {
     for exp in 1..=10 {
         gr.bench_with_input(BenchmarkId::from_parameter(exp), &exp, |b, &exp| {
             let e = Box::new(Expr::Appl(Expr::church_num(exp), Expr::church_num(2)));
-            b.iter(|| eval::reduce(e.clone(), &defs, false));
+            b.iter(|| eval::reduce(e.clone(), &defs));
         });
     }
 }
