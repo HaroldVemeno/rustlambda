@@ -21,15 +21,18 @@ enum Opt {
         #[structopt(parse(from_os_str))]
         files: Vec<PathBuf>,
     },
-    // #[structopt(alias = "h")]
-    // Help {},
+    #[structopt(alias = "h")]
+    Help
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     use Opt::*;
     let opt = Opt::from_args();
-    dbg!(&opt);
     match opt {
+        Help => {
+            Opt::clap().print_long_help()?;
+            println!();
+        }
         Eval { mut files } => {
             let filecount = files.len();
             if filecount == 0 {
