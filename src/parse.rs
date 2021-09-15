@@ -199,7 +199,7 @@ fn parse_pkbl(pkbl: &mut TokPeekable) -> Result<(Defs, Option<Box<Expr>>), Box<d
             }
         }
     }
-    if state == InExpr {
+    if let InExpr | Start = state {
         let mut top = match stack.pop() {
             Some(ParenStart) => {
                 return Err(ParseError::boxed(
