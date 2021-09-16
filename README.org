@@ -1,12 +1,13 @@
 * rustlambda
 A lambda calculus parser and evaluator written in rust
 ** Goals
+- [-] a functioning repl
 - [ ] lazier strategy? call by need?
 - [ ] not reducing from the root every time
 - [ ] tests pls
 - [ ] unicode
-- [-] a functioning repl
 - [ ] semicolons -> newlines and indentation based definitions
+- [ ] print refactor
 |---------------------+--------------------+-------------+--------|
 | Strategy            | Speed              | Lines       | Fails? |
 |---------------------+--------------------+-------------+--------|

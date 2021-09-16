@@ -1,6 +1,5 @@
 #![feature(box_patterns)]
 
-pub mod repl;
 pub mod eval;
 #[macro_use]
 pub mod expr;

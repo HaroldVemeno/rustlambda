@@ -1,6 +1,7 @@
 #[allow(unused_imports)]
-use rustlambda::{eval, expr, lex, parse, repl};
+use rustlambda::{eval, expr, lex, parse};
 
+use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::io;
@@ -10,18 +11,18 @@ use structopt::StructOpt;
 #[derive(Debug, StructOpt)]
 #[structopt(about = "Lambda calculus evaluator and more")]
 enum Opt {
-    #[structopt(alias = "r")]
-    Repl {
-        #[structopt(parse(from_os_str))]
-        files: Vec<PathBuf>,
-    },
+    // #[structopt(alias = "r")]
+    // Repl {
+    //     #[structopt(parse(from_os_str))]
+    //     files: Vec<PathBuf>,
+    // },
     #[structopt(alias = "e")]
     Eval {
         #[structopt(parse(from_os_str))]
         files: Vec<PathBuf>,
     },
     #[structopt(alias = "h")]
-    Help,
+    Help
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -40,16 +41,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             for (i, file) in files.into_iter().enumerate() {
                 let lexed = if file == Path::new("-") {
-                    eprintln!("Processing from stdin ({}/{}):", i + 1, filecount);
+                    eprintln!("Processing from stdin ({}/{}):", i+1, filecount);
                     eprintln!("Lexing...");
                     lex::lex(io::stdin())
                 } else {
-                    eprintln!(
-                        "Processing {} ({}/{}):",
-                        file.to_string_lossy(),
-                        i + 1,
-                        filecount
-                    );
+                    eprintln!("Processing {} ({}/{}):", file.to_string_lossy(), i+1, filecount);
                     eprintln!("Lexing...");
                     lex::lex(File::open(file)?)
                 }?;
@@ -78,7 +74,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                 // eprintln!("{:?}\n", evaluated);
             }
         }
-        Repl { files } => repl::repl(files)?,
     };
     Ok(())
 }
