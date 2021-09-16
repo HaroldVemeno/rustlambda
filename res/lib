@@ -1,0 +1,62 @@
+I = \a.a;
+Flip = \fab.fba;
+Comp = \fgx.f(gx);
+Wrap = \xf.fx;
+Const = \ab.a;
+
+S = \xyz.xz(yz);
+K = \ab.a;
+
+True = \tf.t;
+T = \tf.t;
+False = \tf.f;
+F = \tf.f;
+
+Not = \ctf.cft;
+And = \ab.a b a;
+Or = \ab.a a b;
+Xor = \ab.a (Not b) b;
+If = I;
+
+Pair = \abf.fab;
+P = \abf.fab;
+Fst = \p.p\ab.a;
+Snd = \p.p\ab.b;
+
+Succ = \nfx.f(nfx);
+Add = \nmfx.nf(mfx);
+Mul = \nmf.n(mf);
+Pow = \be.eb;
+
+Y = \f.(\a.aa)(\m.f(mm));
+Pred = \nfx.n(\wh.h(wf)) (Const x) I;
+Pred' = \n.n(\w.Wrap (w Succ)) (Const 0) I;
+Sub = \nm.n Pred m;
+
+Is0 = \n.n (Const False) True;
+RecEq = Y \rnm. And (Is0 n) (Is0 m)
+               T
+               (
+                 Or (Is0 n) (Is0 m)
+                 F
+                 (r (Pred n) (Pred m))
+               );
+
+Eq = \nm. And (Is0 (Sub n m)) (Is0 (Sub m n));
+
+Fact = \n.Fst (
+    n (\p. P (Mul (Fst p) (Snd p))
+             (Succ (Snd p)))
+      (P 1 1));
+
+RecFact = Y (\rn.
+        If (Is0 n)
+        1
+        (Mul (r (Pred n)) n)
+);
+
+Is0 = \n.n (Const False) True;
+Sub = \mn.m Pred n;
+BadSub = \mnfx. m (\w.w Wrap) (n (\w.w (Comp Wrap f)) (m Const x)) I;
+RecSub = Y (\rmn. Or (Is0 m) (Is0 n) n (r (Pred m) (Pred n)));
+I
