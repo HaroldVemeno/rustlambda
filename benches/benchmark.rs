@@ -17,7 +17,7 @@ fn setup<M: measurement::Measurement>(gr: &mut BenchmarkGroup<M>) {
 pub fn bench_stuff(c: &mut Criterion) {
     let mut gr = c.benchmark_group("stuff");
     setup(&mut gr);
-    let input = include_bytes!("../res/test_stuff");
+    let input = include_bytes!("../res/stuff");
     gr.bench_function("lex stuff", |b| b.iter(|| lex::lex(&input[..]).unwrap()));
     let lexed = lex::lex(&input[..]).unwrap();
     gr.bench_function("parse stuff", |b| {
@@ -36,7 +36,7 @@ pub fn bench_rec_factorial(c: &mut Criterion) {
     {
         let mut gr = c.benchmark_group("recursive factorial");
         setup(&mut gr);
-        let input = include_bytes!("../res/test_recfact");
+        let input = include_bytes!("../res/recfact");
         gr.bench_function("lex", |b| b.iter(|| lex::lex(&input[..]).unwrap()));
 
         let lexed = lex::lex(&input[..]).unwrap();
@@ -54,7 +54,7 @@ pub fn bench_rec_factorial(c: &mut Criterion) {
     {
         let mut gr = c.benchmark_group("inlined recursive factorial");
         setup(&mut gr);
-        let input = include_bytes!("../res/test_recfact_inline");
+        let input = include_bytes!("../res/recfact_inline");
         gr.bench_function("lex", |b| b.iter(|| lex::lex(&input[..]).unwrap()));
 
         let lexed = lex::lex(&input[..]).unwrap();
