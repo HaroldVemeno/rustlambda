@@ -71,6 +71,15 @@ fn command(line: impl AsRef<str>, defs: &Defs) -> Option<Result<(), Box<dyn Erro
                     println!("{} = {};", k, v.value)
                 }
             }
+            "names" => {
+                let mut a = "";
+                for (k, _) in defs {
+                    print!("{}", a);
+                    print!("{}", k);
+                    a = ", ";
+                }
+                println!();
+            }
             "clear" | "cl" => print!("\x1B[2J\x1B[H"),
             _ => println!("Unknown command: {}", rest),
         }

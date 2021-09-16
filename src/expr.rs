@@ -190,24 +190,81 @@ impl fmt::Display for Expr {
         use Expr::*;
         if !f.alternate() {
             // Valid lambda expression
-            match self {
-                Variable(v) => write!(f, "{}", ascii::escape_default(*v)),
-                Name(n) => write!(f, " {} ", n),
-                Abstr(p, b) => {
-                    let mut body = b.as_ref();
-                    write!(f, "\\{}", ascii::escape_default(*p))?;
-                    while let Abstr(pn, bn) = body {
-                        write!(f, "{}", ascii::escape_default(*pn))?;
-                        body = bn.as_ref();
+            let mut now = self;
+            let mut depth = 0;
+            let mut nexts: Vec<(u32, &str, &Expr)> = vec![];
+            let mut afters: Vec<(u32, &str)> = vec![];
+            loop {
+                match now {
+                    Variable(v) => {
+                        write!(f, "{}", ascii::escape_default(*v))?;
+                        if let Some((d, b, e)) = nexts.pop() {
+                            depth = d;
+                            now = e;
+                            while !afters.is_empty() && afters.last().unwrap().0 > d {
+                                let (_d, a) = afters.pop().unwrap();
+                                write!(f, "{}", a)?;
+                            }
+                            write!(f, "{}", b)?;
+                        } else {
+                            break;
+                        }
                     }
-                    write!(f, ".{}", body)
-                }
-                Appl(a, b) => match (a.as_ref(), b.as_ref()) {
-                    (Abstr(_, _), Appl(_, _) | Abstr(_, _)) => write!(f, "({})({})", a, b),
-                    (Abstr(_, _), _) => write!(f, "({}){}", a, b),
-                    (_, Appl(_, _) | Abstr(_, _)) => write!(f, "{}({})", a, b),
-                    _ => write!(f, "{}{}", a, b),
-                },
+                    Name(n) => {
+                        write!(f, " {} ", n)?;
+                        if let Some((d, b, e)) = nexts.pop() {
+                            depth = d;
+                            now = e;
+                            while !afters.is_empty() && afters.last().unwrap().0 > d {
+                                let (_d, a) = afters.pop().unwrap();
+                                write!(f, "{}", a)?;
+                            }
+                            write!(f, "{}", b)?;
+                        } else {
+                            break;
+                        }
+                    }
+                    Abstr(p, b) => {
+                        let mut body = b.as_ref();
+                        write!(f, "\\{}", ascii::escape_default(*p))?;
+                        while let Abstr(pn, bn) = body {
+                            write!(f, "{}", ascii::escape_default(*pn))?;
+                            body = bn.as_ref();
+                        }
+                        write!(f, ".")?;
+                        now = body;
+                    }
+                    Appl(a, b) => {
+                        depth += 1;
+                        match (a.as_ref(), b.as_ref()) {
+                            (Abstr(_, _), Appl(_, _) | Abstr(_, _)) => {
+                                write!(f, "(")?;
+                                now = a;
+                                nexts.push((depth, ")(", b.as_ref()));
+                                afters.push((depth, ")"));
+                            }
+                            (Abstr(_, _), _) => {
+                                write!(f, "(")?;
+                                now = a;
+                                nexts.push((depth, ")", b.as_ref()));
+                                afters.push((depth, ""));
+                            }
+                            (_, Appl(_, _) | Abstr(_, _)) => {
+                                now = a;
+                                nexts.push((depth, "(", b.as_ref()));
+                                afters.push((depth, ")"));
+                            }
+                            _ => {
+                                now = a;
+                                nexts.push((depth, "", b.as_ref()));
+                                afters.push((depth, ""));
+                            }
+                        };
+                    }
+                };
+            }
+            while let Some((_d, a)) = afters.pop() {
+                write!(f, "{}", a)?;
             }
         } else {
             // A tree representing the expression
@@ -255,8 +312,9 @@ impl fmt::Display for Expr {
                     }
                 }
             }
-            tree(f, String::new(), String::new(), self)
-        }
+            tree(f, String::new(), String::new(), self)?;
+        };
+        Ok(())
     }
 }
 

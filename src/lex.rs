@@ -32,11 +32,8 @@ pub struct LexError {
     col: u32,
 }
 
-pub fn lex(input: impl Read + 'static) -> Result<Vec<TokenPos>, Box<dyn Error>> {
-    lex_dyn(Box::new(input))
-}
 
-fn lex_dyn(input: Box<dyn Read>) -> Result<Vec<TokenPos>, Box<dyn Error>> {
+pub fn lex(input: impl Read) -> Result<Vec<TokenPos>, Box<dyn Error>> {
     let mut p = BufReader::new(input).bytes().peekable();
 
     let mut vec = Vec::new();
