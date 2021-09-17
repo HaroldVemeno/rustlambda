@@ -1,0 +1,19 @@
+Zero = \zs.z;
+Succ = \nzs.sn;
+Scott = \n.n Succ Zero;
+Sc = Scott;
+
+I = \a.a;
+Y = \g.(\a.aa)(\a.g(aa));
+
+Pred = \n.n Zero I;
+Add = Y(\rnm. n m (\p. Succ (r p m)));
+Mul = Y(\rnm. n Zero (\p. Add m (r p m)));
+Fact = Y(\rn. n (Sc 1) (\p. Mul n (r p)));
+Pow = Y(\rnm. m (Sc 1) (\p. Mul n (r n p)));
+Sub = Y(\rnm. n Zero (\p.
+    m n (\q. r p q)
+));
+1
+
+

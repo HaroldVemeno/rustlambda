@@ -1,0 +1,10 @@
+Zero = \zs.z;
+Succ = \nzs.s n (n z s);
+
+Pg = \n.n Succ Zero;
+
+Pred = \n. n Zero (\pi.p);
+Add = \nm. n m (\pi.Succ i);
+
+1
+
