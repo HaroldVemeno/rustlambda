@@ -3,8 +3,18 @@ Succ = \nzs.s n (n z s);
 
 Pg = \n.n Succ Zero;
 
+PgCh = \nfx. n x (\pi.f i);
+OnPg = \fx.PgCh (f (Pg x));
+OnPg2 = \fxy.PgCh (f (Pg x) (Pg y));
+
+I = \a.a;
+Y = \g.(\a.aa)(\a.g(aa));
+
 Pred = \n. n Zero (\pi.p);
 Add = \nm. n m (\pi.Succ i);
+Mul = \nm. n Zero (\pi.Add m i);
+
+Fact = \n. n (Pg 1) (\pi.Mul (Succ p) i);
 
 1
 

@@ -31,7 +31,8 @@ Pow = \be.eb;
 Y = \f.(\a.aa)(\m.f(mm));
 Pred = \nfx.n(\wh.h(wf)) (Const x) I;
 Pred' = \n.n(\w.Wrap (w Succ)) (Const 0) I;
-Sub = \nm.n Pred m;
+Sub' = \nm.n Pred m;
+Sub = \nm. Y(\rn.n (\p.Succ (r p)) 0) (m (\n. n (\p.p) (\sz.z)) (n (\psz.s p) (\sz.z)));
 
 Is0 = \n.n (Const False) True;
 RecEq = Y \rnm. And (Is0 n) (Is0 m)
@@ -56,7 +57,6 @@ RecFact = Y (\rn.
 );
 
 Is0 = \n.n (Const False) True;
-Sub = \mn.m Pred n;
 BadSub = \mnfx. m (\w.w Wrap) (n (\w.w (Comp Wrap f)) (m Const x)) I;
 RecSub = Y (\rmn. Or (Is0 m) (Is0 n) n (r (Pred m) (Pred n)));
 I

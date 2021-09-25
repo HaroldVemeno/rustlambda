@@ -2,18 +2,29 @@ Zero = \zs.z;
 Succ = \nzs.sn;
 Scott = \n.n Succ Zero;
 Sc = Scott;
+ScCh = Y(\rnfx. n x (\p. f (r p f x)));
+
+On = \wfab.f(wa)(wb);
 
 I = \a.a;
 Y = \g.(\a.aa)(\a.g(aa));
 
 Pred = \n.n Zero I;
-Add = Y(\rnm. n m (\p. Succ (r p m)));
-Mul = Y(\rnm. n Zero (\p. Add m (r p m)));
-Fact = Y(\rn. n (Sc 1) (\p. Mul n (r p)));
-Pow = Y(\rnm. m (Sc 1) (\p. Mul n (r n p)));
+Fold = Y(\rzsn. n z (\p. s (r z s p)));
+
+Add = \nm. Fold m Succ n;
+Mul = \nm. Fold Zero (Add m) n;
+Pow = \nm. Fold (Sc 1) (Mul n) m;
+
+Add' = Y(\rnm. n m (\p. Succ (r p m)));
+Mul' = Y(\rnm. n Zero (\p. Add m (r p m)));
+Pow' = Y(\rnm. m (Sc 1) (\p. Mul n (r n p)));
+
 Sub = Y(\rnm. n Zero (\p.
     m n (\q. r p q)
 ));
+Fact = Y(\rn. n (Sc 1) (\p. Mul n (r p)));
+
 1
 
 
